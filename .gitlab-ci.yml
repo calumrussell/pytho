@@ -1,0 +1,12 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: normal
+
+stages:
+    - deploy
+
+deploy:
+    stage: deploy
+    tags: ['ssh']
+    script:
+        - DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" docker-compose build
+        - HERMES_APIKEY="$HERMES_APIKEY" DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" docker-compose up -d

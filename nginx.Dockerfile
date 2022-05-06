@@ -17,7 +17,9 @@ RUN pip install -r requirements.txt
 COPY . /root/pytho/
 
 COPY --from=0 /root/js/dist /root/pytho/game/js/dist
-RUN export $(cat .env | xargs) && python3 manage.py collectstatic --noinput
+
+ARG DJANGO_SECRET_KEY
+RUN python3 manage.py collectstatic --noinput
 
 FROM nginx:1.20
 

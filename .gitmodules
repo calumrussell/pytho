@@ -1,3 +1,3 @@
-[submodule "helpers/rust_funcs/alator"]
-	path = helpers/rust_funcs/alator
-	url = git@github.com:calumrussell/alator.git
+[submodule "helpers/rust/alator"]
+	path = helpers/rust/alator
+	url = http://gitcrab.com/pytho/alator

@@ -5,12 +5,13 @@ COPY ./game/js /root/js
 RUN yarn install
 RUN yarn run buildprod
 
-FROM python:3.9.5-buster
+FROM python:3.9-bullseye
 
 RUN mkdir /root/pytho
 WORKDIR /root/pytho
 RUN apt-get update
-RUN apt-get -y install python-dev build-essential
+RUN apt-get -y install python-dev build-essential python3.9-venv
+RUN apt-get upgrade -y
 
 #INSTALL RUST
 ENV RUSTUP_HOME=/usr/local/rustup \
@@ -42,7 +43,7 @@ RUN set -eux; \
 COPY ./requirements.txt /root/pytho
 RUN pip install -r requirements.txt
 COPY . /root/pytho/
-RUN python3 -m venv ./venv
+RUN python3 -m venv ./venv --clear
 RUN . ./venv/bin/activate && pip install -r ./requirements.txt
 RUN . ./venv/bin/activate && cd helpers/rust && maturin develop
 COPY --from=0 /root/js/dist /root/pytho/game/js/dist

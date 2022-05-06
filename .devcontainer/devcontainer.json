@@ -1,5 +1,0 @@
-{
-    "build": { "dockerfile": "Dockerfile", "context": ".."},
-    "forwardPorts": [8000],
-    "extensions": ["ms-python.python"]
-  }
