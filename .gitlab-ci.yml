@@ -3,10 +3,32 @@ variables:
 
 stages:
     - deploy
+    - test
+
+test_backend:
+    stage: test
+    tags: ['ssh']
+    script: 
+        - DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" docker build -t pytho_test -f web.Dockerfile  .
+        - docker run --rm -e DJANGO_SECRET_KEY=fake -e SEC_USER_AGENT=fake pytho_test bash -c "source venv/bin/activate && python3 manage.py test"
+        - docker run --rm pytho_test bash -c "source venv/bin/activate && black --check ./api ./game ./helpers"
+
+test_frontend:
+    stage: test
+    image: node:lts-bullseye
+    tags: ['main']
+    script:
+        - cd game/js
+        - yarn install
+        - yarn run test
+        - yarn run checkformat
 
 deploy:
     stage: deploy
     tags: ['ssh']
+    only:
+        refs:
+            - master
     script:
         - DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" docker-compose build
         - HERMES_APIKEY="$HERMES_APIKEY" DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" docker-compose up -d

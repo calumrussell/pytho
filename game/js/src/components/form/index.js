@@ -2,10 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
 
-import {
-  getCssVar,
-} from '@Helpers';
-
 export const FormSelect = (props) => (
   <select
     { ...props }>

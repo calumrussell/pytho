@@ -252,6 +252,7 @@ FundiesStruct = Dict[str, Dict[str, Union[float, str]]]
 always_zero = lambda x: 0 if not x else float(x)
 sometimes_none = lambda x: -1 if not x else float(x)
 
+
 class HermesFundamentalSource:
     date_fmt: str = "%Y-%m-%d"
     num_fmt: int = 1000000  ##1m
@@ -284,7 +285,6 @@ class HermesFundamentalSource:
         },
     }
 
-
     inc_names: List[Callable[[Dict[str, float]], float]] = [
         lambda x: sometimes_none(x["totalRevenue"]),
         lambda x: sometimes_none(x["ebit"]),
@@ -294,14 +294,20 @@ class HermesFundamentalSource:
 
     bal_names: List[Callable[[Dict[str, float]], float]] = [
         lambda x: always_zero(x["cash"]) + always_zero(x["shortTermInvestments"]),
-        lambda x: always_zero(x["totalCurrentAssets"]) - always_zero(x["totalCurrentLiabilities"]),
-        lambda x: always_zero(x["totalAssets"]) - always_zero(x["intangibleAssets"]) + always_zero(x["goodWill"]) - always_zero(x['totalLiab']),
+        lambda x: always_zero(x["totalCurrentAssets"])
+        - always_zero(x["totalCurrentLiabilities"]),
+        lambda x: always_zero(x["totalAssets"])
+        - always_zero(x["intangibleAssets"])
+        + always_zero(x["goodWill"])
+        - always_zero(x["totalLiab"]),
         lambda x: sometimes_none(x["totalAssets"]),
         lambda x: sometimes_none(x["shortTermDebt"]),
         lambda x: sometimes_none(x["longTermDebt"]),
         lambda x: sometimes_none(x["shortLongTermDebtTotal"]),
         lambda x: sometimes_none(x["capitalLeaseObligations"]),
-        lambda x: always_zero(x["shortLongTermDebtTotal"]) - always_zero(x["cash"]) - always_zero(x["shortTermInvestments"]),
+        lambda x: always_zero(x["shortLongTermDebtTotal"])
+        - always_zero(x["cash"])
+        - always_zero(x["shortTermInvestments"]),
         lambda x: always_zero(x["totalAssets"]) - always_zero(x["totalLiab"]),
     ]
 
@@ -349,7 +355,9 @@ class HermesFundamentalSource:
                 existing_vals = res[-1]
                 for pos, val in enumerate(existing_vals):
                     if not val:
-                        missing_name: Callable[[Dict[str, float]], float] = variable_names[pos]
+                        missing_name: Callable[
+                            [Dict[str, float]], float
+                        ] = variable_names[pos]
                         val: Union[float, None] = missing_name(statement[date])
                         ## Edit res in place
                         if val:

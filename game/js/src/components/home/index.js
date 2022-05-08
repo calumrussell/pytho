@@ -131,7 +131,7 @@ export const Home = (props) => {
                 }
               }>
               <li>
-                What % of fund X's returns are due to market exposure?
+                What % of fund X`&apos;`s returns are due to market exposure?
               </li>
               <li>
                 What exposure does fund X have to asset class Y?

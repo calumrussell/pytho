@@ -97,7 +97,7 @@ const reducer = (state, action) => {
       return {
         ...state,
         results: {},
-      }
+      };
     }
 
     case actionTypes.addResults: {
@@ -165,7 +165,9 @@ export const useModel = () => {
     } = state;
 
     if (results) {
-      dispatch({ type: 'CLR_RES' });
+      dispatch({
+        type: 'CLR_RES',
+      });
     }
 
     const indString = Object.keys(independent).map((v) => `ind=${v}`);
@@ -191,7 +193,9 @@ export const useModel = () => {
     } = state;
 
     if (results) {
-      dispatch({ type: 'CLR_RES' });
+      dispatch({
+        type: 'CLR_RES',
+      });
     }
 
     const indString = Object.keys(independent).map((v) => `ind=${v}`);
