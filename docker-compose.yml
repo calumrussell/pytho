@@ -8,6 +8,8 @@ services:
     container_name: pytho
     command: bash -c "source venv/bin/activate && uwsgi uwsgi.ini"
     restart: always
+    ports:
+      - "100.86.124.51:8000:8000"
     environment:
       - DJANGO_DEBUG=false
       - DJANGO_SETTINGS_MODULE=retirement.settings
