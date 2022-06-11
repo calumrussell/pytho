@@ -20,20 +20,13 @@ class Coverage(models.Model):  # type: ignore
     security_type: models.CharField = models.CharField(
         max_length=10, null=False, blank=False
     )
-
-
-class RealReturns(models.Model):  # type: ignore
-    year: models.IntegerField = models.IntegerField(null=False, blank=False)
-    country: models.CharField = models.CharField(max_length=20, null=False, blank=False)
-    eq_tr: models.FloatField = models.FloatField()
-    bond_tr: models.FloatField = models.FloatField()
-    bill_rate: models.FloatField = models.FloatField()
-    inf: models.FloatField = models.FloatField()
-    eq_tr_local: models.FloatField = models.FloatField()
-    currency: models.FloatField = models.FloatField()
-    bond_tr_local: models.FloatField = models.FloatField()
-    eq_tr_usd: models.FloatField = models.FloatField()
-    bond_tr_usd: models.FloatField = models.FloatField()
+    class Meta:
+       unique_together = (
+            ("country_name"),
+            ("name"),
+            ("currency"),
+            ("issuer"),
+        )
 
 
 class SecFilingPaths(models.Model):  # type: ignore

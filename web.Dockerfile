@@ -1,7 +1,7 @@
 FROM node:lts
 
 WORKDIR /root/js
-COPY ./game/js /root/js
+COPY ./js /root/js
 RUN yarn install
 RUN yarn run buildprod
 
@@ -46,4 +46,4 @@ COPY . /root/pytho/
 RUN python3 -m venv ./venv --clear
 RUN . ./venv/bin/activate && pip install -r ./requirements.txt
 RUN . ./venv/bin/activate && cd helpers/rust && maturin develop
-COPY --from=0 /root/js/dist /root/pytho/game/js/dist
+COPY --from=0 /root/js/dist /root/pytho/js/dist

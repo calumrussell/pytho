@@ -4,8 +4,5 @@ from django.contrib.staticfiles import views
 
 urlpatterns = [
     path("api/", include("api.urls")),
-    path("", include("game.urls")),
+    path("", include("front.urls")),
 ]
-
-if settings.DEBUG:
-    urlpatterns.insert(1, re_path(r"^static/(?P<path>.*)$", views.serve))

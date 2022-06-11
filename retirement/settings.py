@@ -25,7 +25,9 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True if os.environ.get("DJANGO_DEBUG") == "true" else False
 
-ALLOWED_HOSTS = ["www.pytho.uk", "pytho.uk", "127.0.0.1", "localhost", "192.168.100.124"]
+ALLOWED_HOSTS = ["www.pytho.uk", "pytho.uk", "127.0.0.1", "localhost"]
+if os.environ.get("DJANGO_ALLOWED_HOSTS"):
+    ALLOWED_HOSTS.append(os.envion.get("DJANGO_ALLOWED_HOSTS"))
 
 # Application definition
 
@@ -35,8 +37,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "markdownify",
-    "game",
+    "front",
     "api",
 ]
 
@@ -119,37 +120,5 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
-STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 STATIC_URL = "/static/"
-STATICFILES_DIRS = ["game/js/dist/"]
-
-MARKDOWNIFY_STRIP = False
-MARKDOWNIFY_WHITELIST_TAGS = {
-    "a",
-    "p",
-    "em",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "h7",
-    "ul",
-    "li",
-    "span",
-    "strong",
-    "ol",
-    "img",
-    "table",
-    "thead",
-    "tbody",
-    "tr",
-    "th",
-    "td",
-    "code",
-}
-
-MARKDOWNIFY_WHITELIST_ATTRS = ["href", "src", "alt"]
-
-MARKDOWNIFY_MARKDOWN_EXTENSIONS = ["markdown.extensions.tables"]
+STATICFILES_DIRS = ["js/dist/"]

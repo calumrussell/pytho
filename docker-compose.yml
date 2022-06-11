@@ -15,7 +15,6 @@ services:
       - DJANGO_SETTINGS_MODULE=retirement.settings
       - SEC_USER_AGENT="CalumRussell:calum.mj.russell@gmail.com"
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-      - HERMES_APIKEY=${HERMES_APIKEY}
 
   nginx:
     build:

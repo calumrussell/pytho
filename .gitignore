@@ -1,8 +1,8 @@
 *.sqlite3
-game/js/dist
-game/js/package-lock.json
-game/js/node_modules
-game/js/yarn.lock
+js/dist
+js/package-lock.json
+js/node_modules
+js/yarn.lock
 __pycache__/
 .env
 tunnel
@@ -15,10 +15,10 @@ build/
 *.c
 *.sqlite
 .mypy_cache
-helpers/rust_funcs/rust_funcs.egg-info
-helpers/rust_funcs/target
-helpers/rust_funcs/debug
-helpers/rust_funcs/Cargo.lock
+helpers/rust/rust_funcs.egg-info
+helpers/rust/target
+helpers/rust/debug
+helpers/rust/Cargo.lock
 venv
 node_modules/.yarn-integrity
 yarn.lock

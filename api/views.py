@@ -13,7 +13,6 @@ from helpers.analysis.riskattribution import (
     RiskAttributionResult,
     RollingRiskAttributionResult,
 )
-from helpers.prices.api import HermesAPI
 from api.decorators import (  # type: ignore
     regression_input_parse,
     RollingRegressionInput,
@@ -23,20 +22,7 @@ from helpers.backtest import (
     BackTestUnusableInputException,
     BackTestInvalidInputException,
 )
-from helpers.prices.data import (
-    DataSource,
-    HermesDailyResponse,
-    HermesEarningsResponse,
-    HermesEarningsSource,
-    HermesFundamentalResponse,
-    HermesFundamentalSource,
-    HermesHoldersResponse,
-    HermesHoldersSource,
-    HermesPeriod,
-    HermesPriceSource,
-    HermesSummaryResponse,
-    HermesSummarySource,
-)
+from helpers.prices.data import DataSource
 
 
 @csrf_exempt  # type: ignore
@@ -236,89 +222,6 @@ def hypothetical_drawdown_simulation(
             },
             status=503,
         )
-
-
-@require_GET  # type: ignore
-def hermes_daily_price(request: HttpRequest) -> JsonResponse:
-    ticker: str = request.GET.get("ticker", None)
-    if not ticker:
-        raise JsonResponse(
-            {"status": "false", "message": "ticker is required parameter"},
-            status=400,
-        )
-
-    res: list = HermesAPI.get_daily_price(ticker)
-    resp: HermesDailyResponse = HermesPriceSource(res, HermesPeriod.DAILY).get()
-    return JsonResponse(resp, status=200)
-
-
-@require_GET  # type: ignore
-def hermes_fundamentals(request: HttpRequest) -> JsonResponse:
-    ticker: str = request.GET.get("ticker", None)
-    if not ticker:
-        raise JsonResponse(
-            {"status": "false", "message": "ticker is required parameter"},
-            status=400,
-        )
-
-    res: dict = HermesAPI.get_fundamentals(ticker)
-    resp: HermesFundamentalResponse = HermesFundamentalSource(
-        res, HermesPeriod.YEARLY
-    ).get()
-    return JsonResponse(resp, status=200)
-
-
-@require_GET  # type: ignore
-def hermes_earnings(request: HttpRequest) -> JsonResponse:
-    ticker: str = request.GET.get("ticker", None)
-    if not ticker:
-        raise JsonResponse(
-            {"status": "false", "message": "ticker is required parameter"},
-            status=400,
-        )
-
-    res: dict = HermesAPI.get_earnings(ticker)
-    resp: HermesEarningsResponse = HermesEarningsSource(res).get()
-    return JsonResponse(resp, status=200)
-
-
-@require_GET  # type: ignore
-def hermes_summary(request: HttpRequest) -> JsonResponse:
-    ticker: str = request.GET.get("ticker", None)
-    if not ticker:
-        raise JsonResponse(
-            {"status": "false", "message": "ticker is required parameter"},
-            status=400,
-        )
-
-    res: dict = HermesAPI.get_summary(ticker)
-    resp: HermesSummaryResponse = HermesSummarySource(res).get()
-    return JsonResponse(resp, status=200)
-
-
-@require_GET  # type: ignore
-def hermes_holders(request: HttpRequest) -> JsonResponse:
-    ticker: str = request.GET.get("ticker", None)
-    if not ticker:
-        raise JsonResponse(
-            {"status": "false", "message": "ticker is required parameter"},
-            status=400,
-        )
-
-    res: dict = HermesAPI.get_holders(ticker)
-    resp: HermesHoldersResponse = HermesHoldersSource(res).get()
-    return JsonResponse(resp, status=200)
-
-
-@require_GET  # type: ignore
-def hermes_suggest(request: HttpRequest) -> JsonResponse:
-    suggest_str: str = request.GET.get("s", None).lower()
-    if not suggest_str:
-        return JsonResponse(
-            {"status": "false", "message": "s is required parameter"}, status=400
-        )
-    search: list = HermesAPI.search_equities(suggest_str)
-    return JsonResponse({"results": search}, status=200)
 
 
 @require_GET  # type: ignore

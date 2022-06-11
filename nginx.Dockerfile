@@ -1,7 +1,7 @@
 FROM node:lts
 
 WORKDIR /root/js
-COPY ./game/js /root/js
+COPY ./js /root/js
 RUN yarn install
 RUN yarn run buildprod
 
@@ -16,7 +16,7 @@ COPY requirements.txt /root/pytho
 RUN pip install -r requirements.txt
 COPY . /root/pytho/
 
-COPY --from=0 /root/js/dist /root/pytho/game/js/dist
+COPY --from=0 /root/js/dist /root/pytho/js/dist
 
 ARG DJANGO_SECRET_KEY
 RUN python3 manage.py collectstatic --noinput
