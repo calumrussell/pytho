@@ -20,8 +20,9 @@ class Coverage(models.Model):  # type: ignore
     security_type: models.CharField = models.CharField(
         max_length=10, null=False, blank=False
     )
+
     class Meta:
-       unique_together = (
+        unique_together = (
             ("country_name"),
             ("name"),
             ("currency"),

@@ -4,110 +4,111 @@ from api.models import Coverage
 
 import investpy
 
+
 def get_funds():
     fund_coverage_countries = [
-        'united states',
-        'united kingdom',
+        "united states",
+        "united kingdom",
     ]
     cols = [
-        'country',
-        'name',
-        'issuer',
-        'currency',
-        'symbol',
+        "country",
+        "name",
+        "issuer",
+        "currency",
+        "symbol",
     ]
     res = []
     for country in fund_coverage_countries:
         for fund in investpy.funds.get_funds_dict(country, columns=cols):
             cov = Coverage(
-                    country_name=fund['country'],
-                    name=fund['name'],
-                    issuer=fund['issuer'],
-                    ticker=fund['symbol'],
-                    currency=fund['currency'],
-                    security_type='fund'
-                )
+                country_name=fund["country"],
+                name=fund["name"],
+                issuer=fund["issuer"],
+                ticker=fund["symbol"],
+                currency=fund["currency"],
+                security_type="fund",
+            )
             res.append(cov)
     return res
 
+
 def get_stocks():
     stock_coverage_countries = [
-        'united states',
-        'united kingdom',
+        "united states",
+        "united kingdom",
     ]
     cols = [
-        'country',
-        'name',
-        'currency',
-        'symbol',
+        "country",
+        "name",
+        "currency",
+        "symbol",
     ]
     res = []
     for country in stock_coverage_countries:
         for stock in investpy.stocks.get_stocks_dict(country, columns=cols):
             cov = Coverage(
-                    country_name=stock['country'],
-                    name=stock['name'],
-                    issuer=None,
-                    ticker=stock['symbol'],
-                    currency=stock['currency'],
-                    security_type='stock'
-                )
+                country_name=stock["country"],
+                name=stock["name"],
+                issuer=None,
+                ticker=stock["symbol"],
+                currency=stock["currency"],
+                security_type="stock",
+            )
             res.append(cov)
     return res
 
+
 def get_etfs():
     etf_coverage_countries = [
-        'united states',
-        'united kingdom',
+        "united states",
+        "united kingdom",
     ]
     cols = [
-        'country',
-        'name',
-        'currency',
-        'symbol',
+        "country",
+        "name",
+        "currency",
+        "symbol",
     ]
     res = []
     for country in etf_coverage_countries:
         for etf in investpy.etfs.get_etfs_dict(country, columns=cols):
             cov = Coverage(
-                    country_name=etf['country'],
-                    name=etf['name'],
-                    issuer=None,
-                    ticker=etf['symbol'],
-                    currency=etf['currency'],
-                    security_type='etf'
-                )
+                country_name=etf["country"],
+                name=etf["name"],
+                issuer=None,
+                ticker=etf["symbol"],
+                currency=etf["currency"],
+                security_type="etf",
+            )
             res.append(cov)
     return res
 
+
 def get_indicies():
     etf_coverage_countries = [
-        'united states',
-        'united kingdom',
+        "united states",
+        "united kingdom",
     ]
     cols = [
-        'country',
-        'name',
-        'currency',
-        'symbol',
-        'market',
+        "country",
+        "name",
+        "currency",
+        "symbol",
+        "market",
     ]
     res = []
     for country in etf_coverage_countries:
         for index in investpy.indices.get_indices_dict(country, columns=cols):
             cov = Coverage(
-                    country_name=index['country'],
-                    name=index['name'],
-                    issuer=index['market'],
-                    ticker=index['symbol'],
-                    currency=index['currency'],
-                    security_type='index'
-                )
+                country_name=index["country"],
+                name=index["name"],
+                issuer=index["market"],
+                ticker=index["symbol"],
+                currency=index["currency"],
+                security_type="index",
+            )
             res.append(cov)
     return res
-
-
-
 
 
 class Command(BaseCommand):

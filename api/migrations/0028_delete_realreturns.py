@@ -6,11 +6,11 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0027_alter_coverage_unique_together'),
+        ("api", "0027_alter_coverage_unique_together"),
     ]
 
     operations = [
         migrations.DeleteModel(
-            name='RealReturns',
+            name="RealReturns",
         ),
     ]
