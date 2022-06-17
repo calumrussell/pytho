@@ -9,7 +9,7 @@ services:
     command: bash -c "source venv/bin/activate && uwsgi uwsgi.ini"
     restart: always
     ports:
-      - "100.74.129.115:14101:8000"
+      - "100.116.173.4:14101:8000"
     environment:
       - DJANGO_DEBUG=false
       - DJANGO_SETTINGS_MODULE=retirement.settings
@@ -29,4 +29,4 @@ services:
       - $PWD/nginx.conf:/etc/nginx/nginx.conf
       - $PWD/nginx.conf:/etc/nginx/conf.d/nginx.conf
     ports:
-      - "100.74.129.115:14100:80"
+      - "100.116.173.4:14100:80"
