@@ -10,5 +10,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = { version = "0.15.1", features = ["extension-module"] }
-alator = { path = "./alator" }
-antevorta = { path = "./antevorta" }
+alator = { path = "./alator", version = "0.0.1" }
+antevorta = { path = "./antevorta", version = "0.0.1" }
