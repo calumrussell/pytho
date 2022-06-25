@@ -1,3 +1,6 @@
 [submodule "helpers/rust/alator"]
 	path = helpers/rust/alator
-	url = ../alator.git
+	url =  ../alator.git
+[submodule "helpers/rust/antevorta"]
+	path = helpers/rust/antevorta
+	url = ../antevorta.git

@@ -35,6 +35,7 @@ fn insert_quote(symbol: &String, price: &f64, date: &i64, existing: &mut HashMap
 fn cum_returns(returns: Vec<f64>) -> Vec<f64> {
     let mut res: Vec<f64> = Vec::new();
     let mut tmp = 1.0;
+    let test = 1.0;
     res.push(tmp);
     for i in returns {
         tmp = tmp * (1.0 + (i / 100.0));
