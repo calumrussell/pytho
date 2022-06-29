@@ -11,7 +11,7 @@ from .base import (
     BackTestInvalidInputException,
     BackTestUnusableInputException,
 )
-from rust import fixedweight_backtest
+from panacea import fixedweight_backtest
 
 
 class FixedSignalBackTestWithPriceAPI(BackTest):
@@ -43,7 +43,7 @@ class FixedSignalBackTestWithPriceAPI(BackTest):
             i: self.prices[i].to_dict() for i in self.prices
         }
         bt: Tuple[
-            float, float, float, float, float, List[float], List[float], List[int]
+            float, float, float, float, float, List[float], List[float], List[float]
         ] = fixedweight_backtest(universe, weights, to_dict)
 
         self.results: BackTestResults = BackTestResults(

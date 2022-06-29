@@ -4,7 +4,7 @@ import pandas as pd
 import statsmodels.api as sm
 from typing import Any, Callable, Dict, List, Tuple, TypedDict
 
-from rust import (
+from panacea import (
     max_dd_threshold_position,
 )
 from helpers.prices import FactorSource
