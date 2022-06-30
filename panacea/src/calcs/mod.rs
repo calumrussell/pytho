@@ -78,7 +78,6 @@ pub fn max_dd_threshold_position(
     Ok(res)
 }
 
-/*
 #[cfg(test)]
 mod tests {
 
@@ -89,11 +88,10 @@ mod tests {
 
     #[test]
     fn run_threshold() {
+        pyo3::prepare_freethreaded_python();
         Python::with_gil(|py| {
-
             let rets = PyList::new(py, vec![0.1, -0.1, 0.2, 0.3, -0.15]);
             max_dd_threshold_position(rets, PyFloat::new(py, 0.05));
         });
     }
 }
-*/
