@@ -18,6 +18,9 @@ class FactorSource:
     def get_dates(self) -> pd.Index:
         return self.data.index
 
+    def get_close(self) -> pd.DataFrame:
+        return self.data
+
     def get_prices(self) -> pd.DataFrame:
         return self.data
 
@@ -66,6 +69,9 @@ class InvestPySource:
 
     def get_dates(self) -> pd.Index:
         return self.data.index
+
+    def get_close(self) -> pd.DataFrame:
+        return self.data[["Close"]]
 
     def get_prices(self) -> pd.DataFrame:
         return self.data[["Open", "Close"]]

@@ -11,7 +11,7 @@ from .base import (
     BackTestInvalidInputException,
     BackTestUnusableInputException,
 )
-from panacea import fixedweight_backtest
+from panacea import fixedweight_backtest, BacktestInput
 
 
 class FixedSignalBackTestWithPriceAPI(BackTest):
@@ -37,14 +37,20 @@ class FixedSignalBackTestWithPriceAPI(BackTest):
     """
 
     def run(self) -> None:
-        universe: List[str] = self.assets
-        weights: Dict[str, float] = self.signal
-        to_dict: Dict[int, Dict[str, Dict[int, float]]] = {
-            i: self.prices[i].to_dict() for i in self.prices
+        to_dict: Dict[str, List[float]] = {
+            str(i): self.prices[i]["Close"].to_list() for i in self.prices
         }
+
+        bt_in = BacktestInput(
+            assets=self.assets,
+            dates=self.dates,
+            weights=self.signal,
+            close=to_dict,
+        )
+
         bt: Tuple[
             float, float, float, float, float, List[float], List[float], List[float]
-        ] = fixedweight_backtest(universe, weights, to_dict)
+        ] = fixedweight_backtest(bt_in)
 
         self.results: BackTestResults = BackTestResults(
             ret=bt[0] * 100,
@@ -55,12 +61,6 @@ class FixedSignalBackTestWithPriceAPI(BackTest):
             values=bt[5],
             returns=bt[6],
             dates=bt[7],
-        )
-        return
-
-    def _init_price_request(self) -> None:
-        self.price_request: prices.PriceAPIRequests = prices.PriceAPIRequests(
-            self.coverage
         )
         return
 
@@ -92,33 +92,19 @@ class FixedSignalBackTestWithPriceAPI(BackTest):
                 raise BackTestUnusableInputException
 
             date_lists = [set(sources_dict[i].get_dates()) for i in sources_dict]
-            date_union = sorted([int(i) for i in set.intersection(*date_lists)])
+            self.dates = sorted([int(i) for i in set.intersection(*date_lists)])
             union_dict = {
                 i: SourceFactory.find_dates(
-                    date_union, sources_dict[i], sources_dict[i].__class__
+                    self.dates, sources_dict[i], sources_dict[i].__class__
                 )
                 for i in sources_dict
             }
 
             for i in union_dict:
                 ##By this point, we always get a result
-                prices: pd.DataFrame = union_dict[i].get_prices()
+                prices: pd.DataFrame = union_dict[i].get_close()
                 self.prices[i] = prices
 
-        return
-
-    def _init_assets(self) -> None:
-        self.assets: List[str] = [str(c.id) for c in self.coverage]
-        self.signal: Dict[str, float] = {
-            i: j for (i, j) in zip(self.assets, self.weights)
-        }
-        return
-
-    def _init_data(self) -> None:
-        self._init_assets()
-        self._init_price_request()
-        self._init_prices()
-        self._init_start_and_end_date()
         return
 
     def __init__(self, assets: List[int], weights: List[float]):
@@ -129,6 +115,7 @@ class FixedSignalBackTestWithPriceAPI(BackTest):
             raise BackTestInvalidInputException
 
         self.weights: List[float] = weights
+
         try:
             self.coverage: List[Coverage] = Coverage.objects.filter(id__in=assets)
         except:
@@ -137,6 +124,13 @@ class FixedSignalBackTestWithPriceAPI(BackTest):
         if len(self.coverage) != len(assets):
             raise BackTestUnusableInputException
 
-        self._init_data()
+        self.assets: List[str] = [str(c.id) for c in self.coverage]
+        self.signal: Dict[str, float] = {
+            i: j for (i, j) in zip(self.assets, self.weights)
+        }
+        self.price_request: prices.PriceAPIRequests = prices.PriceAPIRequests(
+            self.coverage
+        )
+        self._init_prices()
         super().__init__(self.prices)
         return
