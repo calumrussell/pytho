@@ -1,21 +1,26 @@
 use super::common::insert_quote;
 
-use std::collections::HashMap;
-use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyFloat, PyList};
+use alator::broker::{BrokerCost, Dividend, Quote};
+use alator::data::{DataSource, DateTime, PortfolioAllocation, Price};
+use alator::sim::broker::SimulatedBroker;
+use alator::sim::portfolio::SimPortfolio;
 use antevorta::country::uk::{UKIncome, UKSimulationBuilder, UKSimulationResult, NIC};
 use antevorta::schedule::Schedule;
 use antevorta::sim::Simulation;
 use antevorta::strat::StaticInvestmentStrategy;
-use alator::sim::portfolio::SimPortfolio;
-use alator::sim::broker::SimulatedBroker;
-use alator::data::{DataSource, DateTime, PortfolioAllocation, Price};
-use alator::broker::{BrokerCost, Dividend, Quote};
+use pyo3::prelude::*;
+use pyo3::types::{PyDict, PyFloat, PyList};
+use std::collections::HashMap;
 
 type PySimResults = (f64, f64, f64, f64);
 
 fn convert_sim_results(res: UKSimulationResult) -> PySimResults {
-    (res.cash.into(), res.isa.into(), res.gia.into(), res.sipp.into())
+    (
+        res.cash.into(),
+        res.isa.into(),
+        res.gia.into(),
+        res.sipp.into(),
+    )
 }
 
 #[pyfunction]
@@ -25,7 +30,7 @@ pub fn income_simulation(
     data: &PyDict,
     initial_cash: &PyFloat,
     income_value: &PyFloat,
-    income_growth: &PyFloat
+    income_growth: &PyFloat,
 ) -> PyResult<PySimResults> {
     let sim_start = 10.into();
     const SIM_LENGTH: i64 = 100;
@@ -37,7 +42,7 @@ pub fn income_simulation(
     let mut raw_data: HashMap<DateTime, Vec<Quote>> = HashMap::new();
     for (asset, prices) in data_r {
         let open: &HashMap<i64, f64> = prices.get(&String::from("Open")).unwrap();
-        let close: &HashMap<i64, f64> = prices.get(&String::from("Close")).unwrap(); 
+        let close: &HashMap<i64, f64> = prices.get(&String::from("Close")).unwrap();
 
         for (date, price) in open {
             let p: Price = (*price).into();
@@ -56,9 +61,12 @@ pub fn income_simulation(
 
     let mut weights = PortfolioAllocation::new();
     for symbol in weights_r.keys() {
-        weights.insert(&symbol.clone(), &(*weights_r.get(&symbol.clone()).unwrap()).into())
+        weights.insert(
+            &symbol.clone(),
+            &(*weights_r.get(&symbol.clone()).unwrap()).into(),
+        )
     }
- 
+
     let brokercosts = vec![BrokerCost::PctOfValue(0.005)];
     let simbrkr = SimulatedBroker::new(source, brokercosts);
     let port = SimPortfolio::new(simbrkr);

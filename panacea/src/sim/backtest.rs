@@ -1,12 +1,12 @@
-use pyo3::prelude::*;
-use std::collections::HashMap;
-use alator::sim::broker::SimulatedBroker;
 use alator::broker::{BrokerCost, Dividend, Quote};
 use alator::data::{DataSource, DateTime, PortfolioAllocation};
 use alator::perf::{PerfStruct, PortfolioPerformance};
+use alator::sim::broker::SimulatedBroker;
 use alator::sim::portfolio::SimPortfolio;
 use alator::simcontext::SimContext;
 use alator::strategy::fixedweight::FixedWeightStrategy;
+use pyo3::prelude::*;
+use std::collections::HashMap;
 
 #[pyclass]
 #[derive(Clone)]
@@ -20,15 +20,34 @@ pub struct BacktestInput {
 #[pymethods]
 impl BacktestInput {
     #[new]
-    fn new(assets: Vec<String>, weights: HashMap<String, f64>, dates: Vec<i64>, close: HashMap<String, Vec<f64>>) -> Self {
-        BacktestInput { assets, weights, dates, close }
+    fn new(
+        assets: Vec<String>,
+        weights: HashMap<String, f64>,
+        dates: Vec<i64>,
+        close: HashMap<String, Vec<f64>>,
+    ) -> Self {
+        BacktestInput {
+            assets,
+            weights,
+            dates,
+            close,
+        }
     }
 }
 
 type PyPerfResults = (f64, f64, f64, f64, f64, Vec<f64>, Vec<f64>, Vec<f64>);
 
 fn convert_result(res: PerfStruct) -> PyPerfResults {
-    (res.ret, res.cagr, res.vol, res.mdd, res.sharpe, res.values, res.returns, res.dates)
+    (
+        res.ret,
+        res.cagr,
+        res.vol,
+        res.mdd,
+        res.sharpe,
+        res.values,
+        res.returns,
+        res.dates,
+    )
 }
 
 #[pyfunction]
@@ -55,7 +74,10 @@ pub fn fixedweight_backtest(input: &BacktestInput) -> PyResult<PyPerfResults> {
 
     let mut weights = PortfolioAllocation::new();
     for symbol in input.weights.keys() {
-        weights.insert(&symbol.clone(), &(*input.weights.get(&symbol.clone()).unwrap()).into())
+        weights.insert(
+            &symbol.clone(),
+            &(*input.weights.get(&symbol.clone()).unwrap()).into(),
+        )
     }
 
     let initial_cash = 100_000.0;
@@ -101,7 +123,7 @@ mod tests {
         let dates: Vec<i64> = (0..100).collect();
         let mut close: HashMap<String, Vec<f64>> = HashMap::new();
         for asset in &assets {
-            let mut close_data: Vec<f64> = Vec::new(); 
+            let mut close_data: Vec<f64> = Vec::new();
             for _date in &dates {
                 let period_ret = ret_dist.sample(&mut rng);
                 let new_price = price * (1.0 + period_ret);
@@ -116,7 +138,17 @@ mod tests {
 
         pyo3::prepare_freethreaded_python();
         Python::with_gil(|py| -> PyResult<()> {
-            let obj = PyCell::new(py, BacktestInput { dates, assets, close, weights }).unwrap().borrow();
+            let obj = PyCell::new(
+                py,
+                BacktestInput {
+                    dates,
+                    assets,
+                    close,
+                    weights,
+                },
+            )
+            .unwrap()
+            .borrow();
             let res = fixedweight_backtest(&obj);
             println!("{:?}", res.unwrap());
             Ok(())

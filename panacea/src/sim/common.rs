@@ -1,8 +1,13 @@
-use std::collections::HashMap;
-use alator::data::{DateTime, Price};
 use alator::broker::Quote;
+use alator::data::{DateTime, Price};
+use std::collections::HashMap;
 
-pub fn insert_quote(symbol: &str, price: &Price, date: &DateTime, existing: &mut HashMap<DateTime, Vec<Quote>>) {
+pub fn insert_quote(
+    symbol: &str,
+    price: &Price,
+    date: &DateTime,
+    existing: &mut HashMap<DateTime, Vec<Quote>>,
+) {
     let q = Quote {
         symbol: symbol.to_string(),
         bid: *price,
