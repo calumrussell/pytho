@@ -1,7 +1,5 @@
-use super::common::insert_quote;
-
 use alator::broker::{BrokerCost, Dividend, Quote};
-use alator::data::{DataSource, DateTime, PortfolioAllocation, Price};
+use alator::data::{DataSource, DateTime, PortfolioAllocation};
 use alator::sim::broker::SimulatedBroker;
 use alator::sim::portfolio::SimPortfolio;
 use antevorta::country::uk::{UKIncome, UKSimulationBuilder, UKSimulationResult, NIC};
@@ -9,8 +7,43 @@ use antevorta::schedule::Schedule;
 use antevorta::sim::Simulation;
 use antevorta::strat::StaticInvestmentStrategy;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyFloat, PyList};
 use std::collections::HashMap;
+
+#[pyclass]
+#[derive(Clone)]
+pub struct IncomeInput {
+    pub assets: Vec<String>,
+    pub weights: HashMap<String, f64>,
+    pub dates: Vec<i64>,
+    pub close: HashMap<String, Vec<f64>>,
+    pub initial_cash: f64,
+    pub wage: f64,
+    pub income_growth: f64,
+}
+
+#[pymethods]
+impl IncomeInput {
+    #[new]
+    fn new(
+        assets: Vec<String>,
+        weights: HashMap<String, f64>,
+        dates: Vec<i64>,
+        close: HashMap<String, Vec<f64>>,
+        initial_cash: f64,
+        wage: f64,
+        income_growth: f64,
+    ) -> Self {
+        IncomeInput {
+            assets,
+            weights,
+            dates,
+            close,
+            initial_cash,
+            wage,
+            income_growth,
+        }
+    }
+}
 
 type PySimResults = (f64, f64, f64, f64);
 
@@ -24,46 +57,35 @@ fn convert_sim_results(res: UKSimulationResult) -> PySimResults {
 }
 
 #[pyfunction]
-pub fn income_simulation(
-    assets: &PyList,
-    weights: &PyDict,
-    data: &PyDict,
-    initial_cash: &PyFloat,
-    income_value: &PyFloat,
-    income_growth: &PyFloat,
-) -> PyResult<PySimResults> {
+pub fn income_simulation(input: &IncomeInput) -> PyResult<PySimResults> {
     let sim_start = 10.into();
     const SIM_LENGTH: i64 = 100;
-
-    let assets_r: Vec<&str> = assets.extract()?;
-    let weights_r: HashMap<String, f64> = weights.extract()?;
-    let data_r: HashMap<i64, HashMap<String, HashMap<i64, f64>>> = data.extract()?;
+    let data_len = input.dates.len();
 
     let mut raw_data: HashMap<DateTime, Vec<Quote>> = HashMap::new();
-    for (asset, prices) in data_r {
-        let open: &HashMap<i64, f64> = prices.get(&String::from("Open")).unwrap();
-        let close: &HashMap<i64, f64> = prices.get(&String::from("Close")).unwrap();
-
-        for (date, price) in open {
-            let p: Price = (*price).into();
-            let d: DateTime = (*date).into();
-            insert_quote(&asset.to_string(), &p, &d, &mut raw_data);
+    for pos in 0..data_len {
+        let curr_date: DateTime = input.dates[pos].into();
+        let mut quotes: Vec<Quote> = Vec::new();
+        for asset in &input.assets {
+            let close = input.close.get(asset).unwrap();
+            let q = Quote {
+                date: curr_date,
+                bid: close[pos].into(),
+                ask: close[pos].into(),
+                symbol: asset.clone(),
+            };
+            quotes.push(q);
         }
-
-        for (date, price) in close {
-            let p: Price = (*price).into();
-            let d: DateTime = (*date).into();
-            insert_quote(&asset.to_string(), &p, &d, &mut raw_data);
-        }
+        raw_data.insert(curr_date, quotes);
     }
     let raw_dividends: HashMap<DateTime, Vec<Dividend>> = HashMap::new();
     let source = DataSource::from_hashmap(raw_data, raw_dividends);
 
     let mut weights = PortfolioAllocation::new();
-    for symbol in weights_r.keys() {
+    for symbol in input.weights.keys() {
         weights.insert(
             &symbol.clone(),
-            &(*weights_r.get(&symbol.clone()).unwrap()).into(),
+            &(*input.weights.get(&symbol.clone()).unwrap()).into(),
         )
     }
 
@@ -72,13 +94,9 @@ pub fn income_simulation(
     let port = SimPortfolio::new(simbrkr);
     let ia = StaticInvestmentStrategy::new(Schedule::EveryFriday, weights);
 
-    let income_g: f64 = income_growth.extract()?;
-    let growth: f64 = (1.0 + income_g).powf(1.0 / 12.0);
-    let cash: f64 = initial_cash.extract()?;
-    let income: f64 = income_value.extract()?;
-
-    let mut state_builder = UKSimulationBuilder::new(cash.into(), 0.0.into(), NIC::A, ia, port);
-    let employment = UKIncome::Employment(income.into(), Schedule::EveryMonth(25))
+    let growth: f64 = (1.0 + input.income_growth).powf(1.0 / 12.0);
+    let mut state_builder = UKSimulationBuilder::new(input.initial_cash.into(), 0.0.into(), NIC::A, ia, port);
+    let employment = UKIncome::Employment(input.wage.into(), Schedule::EveryMonth(25))
         .with_fixedrate_growth(&sim_start, &SIM_LENGTH, &growth);
     state_builder.add_incomes(employment);
     let mut state = state_builder.build();
@@ -89,4 +107,67 @@ pub fn income_simulation(
     };
     let result = sim.run(&mut state);
     Ok(convert_sim_results(result.get_perf()))
+}
+
+#[cfg(test)]
+mod tests {
+
+    use std::collections::HashMap;
+
+    use pyo3::prelude::*;
+    use rand::distributions::Uniform;
+    use rand::{thread_rng, Rng};
+    use rand_distr::{Distribution, Normal};
+
+    use super::{income_simulation, IncomeInput};
+
+    #[test]
+    fn run_income() {
+        //Weights is {symbol: weight}
+        //Data is {asset_id[i64]: {Open/Close[str]: {date[i64], price[f64]}}}
+        let price_dist = Uniform::new(1.0, 100.0);
+        let vol_dist = Uniform::new(0.1, 0.2);
+        let mut rng = thread_rng();
+        let price = rng.sample(price_dist);
+        let vol = rng.sample(vol_dist);
+        let ret_dist = Normal::new(0.0, vol).unwrap();
+
+        let assets = vec![0.to_string(), 1.to_string()];
+        let dates: Vec<i64> = (0..100).collect();
+        let mut close: HashMap<String, Vec<f64>> = HashMap::new();
+        for asset in &assets {
+            let mut close_data: Vec<f64> = Vec::new();
+            for _date in &dates {
+                let period_ret = ret_dist.sample(&mut rng);
+                let new_price = price * (1.0 + period_ret);
+                close_data.push(new_price);
+            }
+            close.insert(asset.clone(), close_data);
+        }
+
+        let mut weights: HashMap<String, f64> = HashMap::new();
+        weights.insert(String::from("0"), 0.5);
+        weights.insert(String::from("1"), 0.5);
+
+        pyo3::prepare_freethreaded_python();
+        Python::with_gil(|py| -> PyResult<()> {
+            let obj = PyCell::new(
+                py,
+                IncomeInput {
+                    dates,
+                    assets,
+                    close,
+                    weights,
+                    initial_cash: 100_000.0,
+                    wage: 4_000.0,
+                    income_growth: 0.02,
+                },
+            )
+            .unwrap()
+            .borrow();
+            let res = income_simulation(&obj);
+            println!("{:?}", res.unwrap());
+            Ok(())
+        });
+    }
 }
