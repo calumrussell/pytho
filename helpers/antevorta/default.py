@@ -1,20 +1,27 @@
 import pandas as pd
 from pandas.core.frame import DataFrame
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, TypedDict
 
 from api.models import Coverage
 from helpers import prices
 from helpers.prices.data import DataSource, SourceFactory
 from .base import (
-    BackTestResults,
-    BackTestInvalidInputException,
-    BackTestUnusableInputException,
+    AntevortaResults,
+    IncomeSimInvalidInputException,
+    IncomeSimUnusableInputException,
 )
-from panacea import fixedweight_backtest, BacktestInput
+from panacea import income_simulation, IncomeInput
 
 
-class FixedSignalBackTestWithPriceAPI:
-    """Initialises and loads the data to be used by the backtest.
+class DefaultSimConstants(TypedDict):
+    initial_cash: float
+    wage: float
+    ##TODO: especially bad name, needs to change
+    income_growth: float
+
+
+class DefaultSimulationWithPriceAPI:
+    """Initialises and loads the data to be used by the simulation.
 
     Attributes
     ---------
@@ -27,39 +34,45 @@ class FixedSignalBackTestWithPriceAPI:
 
     Raises
     ---------
-    BackTestInvalidInputException
+    IncomeSimInvalidInputException
         Either weights or assets is missing or not formatted
-    BackTestUnusableInputException
+    IncomeSimUnusableInputException
         Input is valid but there is no data source
     ConnectionError
         Failed to connect to InvestPySource
     """
 
-    def run(self) -> None:
+    def run(self, constants: DefaultSimConstants) -> None:
         to_dict: Dict[str, List[float]] = {
             str(i): self.prices[i]["Close"].to_list() for i in self.prices
         }
 
-        bt_in = BacktestInput(
+        if constants["initial_cash"] < 0:
+            raise IncomeSimUnusableInputException
+
+        if constants["wage"] < 0:
+            raise IncomeSimUnusableInputException
+
+        if constants["income_growth"] < 0:
+            raise IncomeSimUnusableInputException
+
+        inc_in = IncomeInput(
             assets=self.assets,
             dates=self.dates,
             weights=self.signal,
             close=to_dict,
+            initial_cash=constants["initial_cash"],
+            wage=constants["wage"],
+            income_growth=constants["income_growth"],
         )
 
-        bt: Tuple[
-            float, float, float, float, float, List[float], List[float], List[float]
-        ] = fixedweight_backtest(bt_in)
+        inc: Tuple[float, float, float, float] = income_simulation(inc_in)
 
-        self.results: BackTestResults = BackTestResults(
-            ret=bt[0] * 100,
-            cagr=bt[1] * 100,
-            vol=bt[2] * 100,
-            mdd=bt[3] * 100,
-            sharpe=bt[4],
-            values=bt[5],
-            returns=bt[6],
-            dates=bt[7],
+        self.results: AntevortaResults = AntevortaResults(
+            cash=inc[0],
+            isa=inc[1],
+            gia=inc[2],
+            sipp=inc[3],
         )
         return
 
@@ -69,16 +82,16 @@ class FixedSignalBackTestWithPriceAPI:
             sources_dict: Dict[int, DataSource] = self.price_request.get()
         # Invalid Input
         except ValueError:
-            raise BackTestUnusableInputException
+            raise IncomeSimUnusableInputException
         # Request failed to return 200 status code
         except ConnectionError:
             raise ConnectionError
         # Valid input but query could not produce result
         except RuntimeError:
-            raise BackTestUnusableInputException
+            raise IncomeSimUnusableInputException
         # Information was unavailable or not found
         except IndexError:
-            raise BackTestUnusableInputException
+            raise IncomeSimUnusableInputException
 
         else:
             ##If we are missing data, stop here
@@ -86,9 +99,9 @@ class FixedSignalBackTestWithPriceAPI:
                 ##Always returns df, even if we have no source
                 check: pd.DataFrame = sources_dict[i].get_prices()
                 if check.empty:
-                    raise BackTestUnusableInputException
+                    raise IncomeSimUnusableInputException
             if not sources_dict:
-                raise BackTestUnusableInputException
+                raise IncomeSimUnusableInputException
 
             date_lists = [set(sources_dict[i].get_dates()) for i in sources_dict]
             self.dates = sorted([int(i) for i in set.intersection(*date_lists)])
@@ -108,7 +121,7 @@ class FixedSignalBackTestWithPriceAPI:
 
     def __init__(self, assets: List[int], weights: List[float]):
         if not assets or not weights:
-            raise BackTestInvalidInputException
+            raise IncomeSimInvalidInputException
 
         if len(assets) != len(weights):
             raise BackTestInvalidInputException
@@ -118,10 +131,10 @@ class FixedSignalBackTestWithPriceAPI:
         try:
             self.coverage: List[Coverage] = Coverage.objects.filter(id__in=assets)
         except:
-            raise BackTestUnusableInputException
+            raise IncomeSimUnusableInputException
 
         if len(self.coverage) != len(assets):
-            raise BackTestUnusableInputException
+            raise IncomeSimUnusableInputException
 
         self.assets: List[str] = [str(c.id) for c in self.coverage]
         self.signal: Dict[str, float] = {

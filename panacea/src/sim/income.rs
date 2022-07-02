@@ -18,6 +18,7 @@ pub struct IncomeInput {
     pub close: HashMap<String, Vec<f64>>,
     pub initial_cash: f64,
     pub wage: f64,
+    //TODO: especially bad name, needs to change
     pub income_growth: f64,
 }
 
@@ -58,12 +59,11 @@ fn convert_sim_results(res: UKSimulationResult) -> PySimResults {
 
 #[pyfunction]
 pub fn income_simulation(input: &IncomeInput) -> PyResult<PySimResults> {
-    let sim_start = 10.into();
-    const SIM_LENGTH: i64 = 100;
-    let data_len = input.dates.len();
+    let start_date = input.dates.first().unwrap().clone();
+    let sim_len = input.dates.len();
 
     let mut raw_data: HashMap<DateTime, Vec<Quote>> = HashMap::new();
-    for pos in 0..data_len {
+    for pos in 0..sim_len {
         let curr_date: DateTime = input.dates[pos].into();
         let mut quotes: Vec<Quote> = Vec::new();
         for asset in &input.assets {
@@ -97,13 +97,13 @@ pub fn income_simulation(input: &IncomeInput) -> PyResult<PySimResults> {
     let growth: f64 = (1.0 + input.income_growth).powf(1.0 / 12.0);
     let mut state_builder = UKSimulationBuilder::new(input.initial_cash.into(), 0.0.into(), NIC::A, ia, port);
     let employment = UKIncome::Employment(input.wage.into(), Schedule::EveryMonth(25))
-        .with_fixedrate_growth(&sim_start, &SIM_LENGTH, &growth);
+        .with_fixedrate_growth(&start_date.into(), &(sim_len as i64), &growth);
     state_builder.add_incomes(employment);
     let mut state = state_builder.build();
 
     let mut sim = Simulation {
-        start_date: sim_start,
-        length: SIM_LENGTH,
+        start_date: start_date.into(),
+        length: sim_len as i64,
     };
     let result = sim.run(&mut state);
     Ok(convert_sim_results(result.get_perf()))

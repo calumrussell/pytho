@@ -22,7 +22,86 @@ from helpers.backtest import (
     BackTestUnusableInputException,
     BackTestInvalidInputException,
 )
+from helpers.antevorta import (
+    DefaultSimulationWithPriceAPI,
+    DefaultSimConstants,
+    IncomeSimUnusableInputException,
+    IncomeSimInvalidInputException,
+)
 from helpers.prices.data import DataSource
+
+
+@csrf_exempt  # type: ignore
+@require_POST  # type: ignore
+def income_simulation(request: HttpRequest) -> JsonResponse:
+    """
+    Parameters
+    --------
+    data : `Dict[assets : List[int], weights : List[float]], initial_cash: float, wage: float, income_growth: float`
+      Assets and weights to run static benchmark against
+
+    Returns
+    --------
+    200
+      Income simulation runs successfully and returns performance numbers
+    400
+      Client passes an input that is does not have any required parameters
+    404
+      Client passes a valid input but these can't be used to run a backtest
+    405
+      Client attempts a method other than POST
+    503
+      Couldn't connect to downstream API
+    """
+    req_body: Dict[str, Any] = json.loads(request.body.decode("utf-8"))
+    if "data" not in req_body:
+        return JsonResponse(
+            {
+                "status": "false",
+                "message": "Client passed no data to run simulation on",
+            },
+            status=400,
+        )
+
+    inc_portfolio: Dict[str, List[Any]] = req_body["data"]
+    resp: Dict[str, Dict[str, Any]] = {}
+    resp["data"] = {}
+
+    assets: List[int] = inc_portfolio["assets"]
+    weights: List[float] = inc_portfolio["weights"]
+
+    constants: DefaultSimConstants = DefaultSimConstants(
+        initial_cash=inc_portfolio["initial_cash"],
+        wage=inc_portfolio["wage"],
+        income_growth=inc_portfolio["income_growth"],
+    )
+
+    try:
+        inc: DefaultSimulationWithPriceAPI = DefaultSimulationWithPriceAPI(
+            assets, weights
+        )
+        inc.run(constants)
+    except IncomeSimInvalidInputException:
+        return JsonResponse(
+            {"status": "false", "message": "Inputs are invalid"}, status=404
+        )
+    except IncomeSimUnusableInputException:
+        return JsonResponse(
+            {"status": "false", "message": "Backtest could not run with inputs"},
+            status=404,
+        )
+    except ConnectionError:
+        return JsonResponse(
+            {
+                "status": "false",
+                "message": "Couldn't complete request due to connection error",
+            },
+            status=503,
+        )
+    else:
+        ##mypy doesn't know runtime identity of TypedDict
+        resp["data"] = dict(inc.results)
+        return JsonResponse(resp, status=200)
 
 
 @csrf_exempt  # type: ignore

@@ -224,6 +224,163 @@ class TestHistoricalDrawdownEstimator(TestCase):
         return
 
 
+class TestIncomeSimulation(TestCase):
+    def setUp(self):
+        self.c = Client()
+        instance = Coverage.objects.create(
+            id=666,
+            country_name="united_states",
+            name="S&P 500",
+            security_type="index",
+        )
+        instance.save()
+
+        self.fake_data = {}
+        self.fake_data[666] = FakeData.get_investpy(1, 0.1, 100)
+        return
+
+    def test_that_get_fails(self):
+        resp = self.c.get("/api/incomesim")
+        self.assertTrue(resp.status_code == 405)
+
+    @patch("api.views.prices.PriceAPIRequests")
+    def test_that_simulation_runs(self, mock_obj):
+        instance = mock_obj.return_value
+        instance.get.return_value = self.fake_data
+
+        req = {
+            "data": {
+                "assets": [666],
+                "weights": [1],
+                "initial_cash": 100000,
+                "wage": 10000,
+                "income_growth": 0.05,
+            }
+        }
+        response = self.c.post("/api/incomesim", req, content_type="application/json")
+        json_resp = json.loads(response.content.decode("utf-8"))
+        self.assertTrue("data" in json_resp)
+        data_resp = json_resp["data"]
+        self.assertTrue("cash" in data_resp)
+        return
+
+    @patch("api.views.prices.PriceAPIRequests")
+    def test_that_simulation_throws_error_with_no_input(self, mock_obj):
+        instance = mock_obj.return_value
+        instance.get.return_value = self.fake_data
+
+        req = {}
+        req1 = {
+            "data": {
+                "assets": [],
+                "weights": [],
+                "initial_cash": -1,
+                "wage": -1,
+                "income_growth": -1,
+            }
+        }
+
+        response = self.c.post("/api/incomesim", req, content_type="application/json")
+        response1 = self.c.post("/api/incomesim", req1, content_type="application/json")
+        self.assertTrue(response.status_code == 400)
+        self.assertTrue(response1.status_code == 404)
+        return
+
+    @patch("api.views.prices.PriceAPIRequests")
+    def test_that_simulation_throws_error_with_bad_input(self, mock_obj):
+        instance = mock_obj.return_value
+        instance.get.return_value = self.fake_data
+
+        req = {
+            "data": {
+                "assets": [666],
+                "weights": [],
+                "initial_cash": 1,
+                "wage": 1,
+                "income_growth": 0.05,
+            }
+        }
+        req1 = {
+            "data": {
+                "assets": [],
+                "weights": [1],
+                "initial_cash": 1,
+                "wage": 1,
+                "income_growth": 0.05,
+            }
+        }
+        req2 = {
+            "data": {
+                "assets": ["bad"],
+                "weights": [1],
+                "initial_cash": 1,
+                "wage": 1,
+                "income_growth": 0.05,
+            }
+        }
+        req3 = {
+            "data": {
+                "assets": [666],
+                "weights": [1],
+                "initial_cash": -1,
+                "wage": 1,
+                "income_growth": 0.05,
+            }
+        }
+        req4 = {
+            "data": {
+                "assets": [666],
+                "weights": [1],
+                "initial_cash": 10,
+                "wage": -1,
+                "income_growth": 0.05,
+            }
+        }
+        req5 = {
+            "data": {
+                "assets": [666],
+                "weights": [1],
+                "initial_cash": 10,
+                "wage": 10,
+                "income_growth": -1,
+            }
+        }
+
+        response = self.c.post("/api/incomesim", req, content_type="application/json")
+        response1 = self.c.post("/api/incomesim", req1, content_type="application/json")
+        response2 = self.c.post("/api/incomesim", req2, content_type="application/json")
+        response3 = self.c.post("/api/incomesim", req3, content_type="application/json")
+        response4 = self.c.post("/api/incomesim", req4, content_type="application/json")
+        response5 = self.c.post("/api/incomesim", req5, content_type="application/json")
+
+        self.assertTrue(response.status_code == 404)
+        self.assertTrue(response1.status_code == 404)
+        self.assertTrue(response2.status_code == 404)
+        self.assertTrue(response3.status_code == 404)
+        self.assertTrue(response4.status_code == 404)
+        self.assertTrue(response5.status_code == 404)
+        return
+
+    @patch("api.views.prices.PriceAPIRequests")
+    def test_that_simulation_throws_error_with_failed_data_fetch(self, mock_obj):
+        instance = mock_obj.return_value
+        instance.get.return_value = []
+
+        req = {
+            "data": {
+                "assets": [666],
+                "weights": [1],
+                "initial_cash": 10,
+                "wage": 10,
+                "income_growth": 0.05,
+            }
+        }
+
+        response = self.c.post("/api/incomesim", req, content_type="application/json")
+        self.assertTrue(response.status_code == 404)
+        return
+
+
 class TestBacktestPortfolio(TestCase):
     def setUp(self):
         self.c = Client()
