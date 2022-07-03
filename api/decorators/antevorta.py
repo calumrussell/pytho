@@ -40,7 +40,7 @@ def antevorta_input():
                 return ErrorResponse.create(
                     400, "Client passed no data to run simulation on"
                 )
-            if "income_growth" not in body_data:
+            if "wage_growth" not in body_data:
                 return ErrorResponse.create(
                     400, "Client passed no data to run simulation on"
                 )
@@ -56,8 +56,8 @@ def antevorta_input():
 
             initial_cash = body_data.get("initial_cash")
             wage = body_data.get("wage")
-            income_growth = body_data.get("income_growth")
-            if initial_cash < 0 or wage < 0 or income_growth < 0:
+            wage_growth = body_data.get("wage_growth")
+            if initial_cash < 0 or wage < 0 or wage_growth < 0:
                 return ErrorResponse.create(400, "Input data is invalid")
 
             antevorta = AntevortaClientInput(
@@ -65,7 +65,7 @@ def antevorta_input():
                 weights=weights,
                 initial_cash=initial_cash,
                 wage=wage,
-                income_growth=income_growth,
+                wage_growth=wage_growth,
             )
             return func(request, antevorta=antevorta, *args, **kwargs)
 

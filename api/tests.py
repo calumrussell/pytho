@@ -27,7 +27,6 @@ def create_fake_risk_attribution_data(obj):
     obj.fake_data = {}
     obj.fake_data[666] = FakeData.get_investpy(1, 0.01, 100)
     obj.fake_data[667] = FakeData.get_investpy(2, 0.02, 100)
-    return
 
 
 def risk_attribution_route_builder(query_string):
@@ -55,7 +54,6 @@ class TestRiskAttributionRoutes(TestCase):
 
     def setUp(self):
         create_fake_risk_attribution_data(self)
-        return
 
     @patch("api.views.prices.PriceAPIRequestsMonthly")
     def test_that_risk_attribution_runs(self, mock_obj):
@@ -66,7 +64,6 @@ class TestRiskAttributionRoutes(TestCase):
         for r in routes:
             resp = self.c.get(r, content_type="application/json")
             self.assertTrue(resp.status_code == 200)
-        return
 
     @patch("api.views.prices.PriceAPIRequestsMonthly")
     def test_that_risk_attribution_throws_error_with_no_input(self, mock_obj):
@@ -77,7 +74,6 @@ class TestRiskAttributionRoutes(TestCase):
         for r in routes:
             resp = self.c.get(r, content_type="application/json")
             self.assertTrue(resp.status_code == 400)
-        return
 
     @patch("api.views.prices.PriceAPIRequestsMonthly")
     def test_that_risk_attribution_throws_error_with_bad_input(self, mock_obj):
@@ -104,7 +100,6 @@ class TestRiskAttributionRoutes(TestCase):
             content_type="application/json",
         )
         self.assertTrue(response.status_code == 400)
-        return
 
     @patch("api.views.prices.PriceAPIRequestsMonthly")
     def test_that_risk_attribution_catches_error_with_data_fetch(self, mock_obj):
@@ -115,7 +110,6 @@ class TestRiskAttributionRoutes(TestCase):
         for r in routes:
             resp = self.c.get(r, content_type="application/json")
             self.assertTrue(resp.status_code == 404)
-        return
 
     @patch("api.views.prices.PriceAPIRequestsMonthly")
     def test_that_risk_attribution_catches_error_with_window_length(self, mock_obj):
@@ -127,7 +121,6 @@ class TestRiskAttributionRoutes(TestCase):
             content_type="application/json",
         )
         self.assertTrue(response.status_code == 400)
-        return
 
 
 class TestHistoricalDrawdownEstimator(TestCase):
@@ -150,7 +143,6 @@ class TestHistoricalDrawdownEstimator(TestCase):
         self.fake_data = {}
         self.fake_data[666] = FakeData.get_investpy(1, 0.1, 1000)
         self.fake_data[1] = FakeData.get_factor(0, 0.1, 100)
-        return
 
     @patch("api.views.prices.PriceAPIRequestsMonthly")
     def test_that_drawdown_estimator_runs(self, mock_obj):
@@ -161,7 +153,6 @@ class TestHistoricalDrawdownEstimator(TestCase):
             "/api/hypotheticaldrawdown?ind=1&dep=666", content_type="application/json"
         )
         self.assertTrue(response.status_code == 200)
-        return
 
     @patch("api.views.prices.PriceAPIRequestsMonthly")
     def test_that_drawdown_estimator_throws_error_with_no_input(self, mock_obj):
@@ -172,7 +163,6 @@ class TestHistoricalDrawdownEstimator(TestCase):
             "/api/hypotheticaldrawdown", content_type="application/json"
         )
         self.assertTrue(response.status_code == 400)
-        return
 
     @patch("api.views.prices.PriceAPIRequestsMonthly")
     def test_that_drawdown_estimator_throws_error_with_bad_input(self, mock_obj):
@@ -194,7 +184,6 @@ class TestHistoricalDrawdownEstimator(TestCase):
             content_type="application/json",
         )
         self.assertTrue(response.status_code == 400)
-        return
 
     @patch("api.views.prices.PriceAPIRequestsMonthly")
     def test_that_drawdown_estimator_catches_error_with_data_fetch(self, mock_obj):
@@ -205,7 +194,6 @@ class TestHistoricalDrawdownEstimator(TestCase):
             "/api/hypotheticaldrawdown?dep=666&ind=1", content_type="application/json"
         )
         self.assertTrue(response.status_code == 404)
-        return
 
     @patch("api.views.prices.PriceAPIRequestsMonthly")
     def test_that_drawdown_estimator_catches_error_when_called_without_factor(
@@ -221,7 +209,6 @@ class TestHistoricalDrawdownEstimator(TestCase):
             "/api/hypotheticaldrawdown?dep=666&ind=1", content_type="application/json"
         )
         self.assertTrue(response.status_code == 400)
-        return
 
 
 class TestIncomeSimulation(TestCase):
@@ -237,7 +224,6 @@ class TestIncomeSimulation(TestCase):
 
         self.fake_data = {}
         self.fake_data[666] = FakeData.get_investpy(1, 0.1, 100)
-        return
 
     def test_that_get_fails(self):
         resp = self.c.get("/api/incomesim")
@@ -254,7 +240,7 @@ class TestIncomeSimulation(TestCase):
                 "weights": [1.0],
                 "initial_cash": 100000,
                 "wage": 10000,
-                "income_growth": 0.05,
+                "wage_growth": 0.05,
             }
         }
         response = self.c.post("/api/incomesim", req, content_type="application/json")
@@ -262,7 +248,6 @@ class TestIncomeSimulation(TestCase):
         self.assertTrue("data" in json_resp)
         data_resp = json_resp["data"]
         self.assertTrue("cash" in data_resp)
-        return
 
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_simulation_throws_error_with_no_input(self, mock_obj):
@@ -276,7 +261,7 @@ class TestIncomeSimulation(TestCase):
                 "weights": [],
                 "initial_cash": -1,
                 "wage": -1,
-                "income_growth": -1,
+                "wage_growth": -1,
             }
         }
 
@@ -284,7 +269,6 @@ class TestIncomeSimulation(TestCase):
         response1 = self.c.post("/api/incomesim", req1, content_type="application/json")
         self.assertTrue(response.status_code == 400)
         self.assertTrue(response1.status_code == 400)
-        return
 
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_simulation_throws_error_with_bad_input(self, mock_obj):
@@ -297,7 +281,7 @@ class TestIncomeSimulation(TestCase):
                 "weights": [],
                 "initial_cash": 1,
                 "wage": 1,
-                "income_growth": 0.05,
+                "wage_growth": 0.05,
             }
         }
         req1 = {
@@ -306,7 +290,7 @@ class TestIncomeSimulation(TestCase):
                 "weights": [1],
                 "initial_cash": 1,
                 "wage": 1,
-                "income_growth": 0.05,
+                "wage_growth": 0.05,
             }
         }
         req2 = {
@@ -315,7 +299,7 @@ class TestIncomeSimulation(TestCase):
                 "weights": [1],
                 "initial_cash": 1,
                 "wage": 1,
-                "income_growth": 0.05,
+                "wage_growth": 0.05,
             }
         }
         req3 = {
@@ -324,7 +308,7 @@ class TestIncomeSimulation(TestCase):
                 "weights": [1],
                 "initial_cash": -1,
                 "wage": 1,
-                "income_growth": 0.05,
+                "wage_growth": 0.05,
             }
         }
         req4 = {
@@ -333,7 +317,7 @@ class TestIncomeSimulation(TestCase):
                 "weights": [1],
                 "initial_cash": 10,
                 "wage": -1,
-                "income_growth": 0.05,
+                "wage_growth": 0.05,
             }
         }
         req5 = {
@@ -342,7 +326,7 @@ class TestIncomeSimulation(TestCase):
                 "weights": [1],
                 "initial_cash": 10,
                 "wage": 10,
-                "income_growth": -1,
+                "wage_growth": -1,
             }
         }
 
@@ -359,7 +343,6 @@ class TestIncomeSimulation(TestCase):
         self.assertTrue(response3.status_code == 400)
         self.assertTrue(response4.status_code == 400)
         self.assertTrue(response5.status_code == 400)
-        return
 
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_simulation_throws_error_with_failed_data_fetch(self, mock_obj):
@@ -372,13 +355,12 @@ class TestIncomeSimulation(TestCase):
                 "weights": [1],
                 "initial_cash": 10,
                 "wage": 10,
-                "income_growth": 0.05,
+                "wage_growth": 0.05,
             }
         }
 
         response = self.c.post("/api/incomesim", req, content_type="application/json")
         self.assertTrue(response.status_code == 404)
-        return
 
 
 class TestBacktestPortfolio(TestCase):
@@ -394,7 +376,6 @@ class TestBacktestPortfolio(TestCase):
 
         self.fake_data = {}
         self.fake_data[666] = FakeData.get_investpy(1, 0.1, 100)
-        return
 
     def test_that_get_fails(self):
         resp = self.c.get("/api/backtest")
@@ -416,7 +397,6 @@ class TestBacktestPortfolio(TestCase):
         self.assertTrue("vol" in data_resp)
         self.assertTrue("mdd" in data_resp)
         self.assertTrue("values" in data_resp)
-        return
 
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_backtest_throws_error_with_no_input(self, mock_obj):
@@ -430,7 +410,6 @@ class TestBacktestPortfolio(TestCase):
         response1 = self.c.post("/api/backtest", req1, content_type="application/json")
         self.assertTrue(response.status_code == 400)
         self.assertTrue(response1.status_code == 400)
-        return
 
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_backtest_throws_error_with_bad_input(self, mock_obj):
@@ -447,7 +426,6 @@ class TestBacktestPortfolio(TestCase):
         self.assertTrue(response.status_code == 400)
         self.assertTrue(response1.status_code == 400)
         self.assertTrue(response2.status_code == 404)
-        return
 
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_backtest_throws_error_with_failed_data_fetch(self, mock_obj):
@@ -458,4 +436,3 @@ class TestBacktestPortfolio(TestCase):
 
         response = self.c.post("/api/backtest", req, content_type="application/json")
         self.assertTrue(response.status_code == 404)
-        return
