@@ -47,7 +47,7 @@ def antevorta_input():
 
             assets = body_data.get("assets")
             weights = body_data.get("weights")
-            
+
             if len(assets) != len(weights):
                 return ErrorResponse.create(400, "Input data is invalid")
 

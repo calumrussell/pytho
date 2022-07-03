@@ -1,4 +1,4 @@
-from typing import List, Dict 
+from typing import List, Dict
 
 from api.models import Coverage
 from helpers import prices
@@ -90,7 +90,7 @@ class DefaultSimulationWithPriceAPI:
         self.signal: Dict[str, float] = {
             str(i): j for (i, j) in zip(antevorta["assets"], self.weights)
         }
-        self.initial_cash = antevorta['initial_cash']
-        self.wage = antevorta['wage']
-        self.income_growth = antevorta['income_growth']
+        self.initial_cash = antevorta["initial_cash"]
+        self.wage = antevorta["wage"]
+        self.income_growth = antevorta["income_growth"]
         return
