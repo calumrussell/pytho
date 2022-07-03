@@ -13,6 +13,7 @@ from helpers.prices.data import DataSource
 from .riskattribution import (
     RegressionCoefficient,
     RegressionResult,
+    RegressionInput,
     RiskAttributionDefinition,
 )
 
@@ -231,8 +232,7 @@ class HistoricalDrawdownEstimatorFromDataSources(HistoricalDrawdownEstimator):
 
     def __init__(
         self,
-        dep: int,
-        ind: List[int],
+        reg_input: RegressionInput,
         model_prices: Dict[int, DataSource],
         threshold: float,
     ):
@@ -254,11 +254,11 @@ class HistoricalDrawdownEstimatorFromDataSources(HistoricalDrawdownEstimator):
         """
 
         definition: RiskAttributionDefinition = RiskAttributionDefinition(
-            ind=ind, dep=dep, data=model_prices
+            reg_input=reg_input, data=model_prices
         )
 
         ##Only works with Factors as independent variables
-        for i in ind:
+        for i in reg_input["ind"]:
             if type(model_prices.get(i)) != FactorSource:
                 raise HistoricalDrawdownEstimatorNoFactorSourceException
 

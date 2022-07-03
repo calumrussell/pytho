@@ -11,29 +11,34 @@ from helpers.analysis.drawdown import HistoricalDrawdownEstimatorResult
 from helpers.analysis.riskattribution import (
     BootstrapRiskAttributionResult,
     RiskAttributionResult,
+    RollingRegressionInput,
     RollingRiskAttributionResult,
 )
 from api.decorators import (  # type: ignore
-    regression_input_parse,
-    RollingRegressionInput,
+    regression_input,
+    alator_input,
+    antevorta_input,
 )
-from helpers.backtest import (
+from helpers.alator import (
     FixedSignalBackTestWithPriceAPI,
-    BackTestUnusableInputException,
-    BackTestInvalidInputException,
+    AlatorUnusableInputException,
+    AlatorClientInput,
 )
 from helpers.antevorta import (
     DefaultSimulationWithPriceAPI,
-    DefaultSimConstants,
-    IncomeSimUnusableInputException,
-    IncomeSimInvalidInputException,
+    AntevortaUnusableInputException,
+    AntevortaClientInput,
 )
 from helpers.prices.data import DataSource
+from helpers.response import ErrorResponse
 
 
 @csrf_exempt  # type: ignore
 @require_POST  # type: ignore
-def income_simulation(request: HttpRequest) -> JsonResponse:
+@antevorta_input()
+def antevorta_simulation(
+    request: HttpRequest, antevorta: AntevortaClientInput
+) -> JsonResponse:
     """
     Parameters
     --------
@@ -53,60 +58,20 @@ def income_simulation(request: HttpRequest) -> JsonResponse:
     503
       Couldn't connect to downstream API
     """
-    req_body: Dict[str, Any] = json.loads(request.body.decode("utf-8"))
-    if "data" not in req_body:
-        return JsonResponse(
-            {
-                "status": "false",
-                "message": "Client passed no data to run simulation on",
-            },
-            status=400,
-        )
-
-    inc_portfolio: Dict[str, List[Any]] = req_body["data"]
-    resp: Dict[str, Dict[str, Any]] = {}
-    resp["data"] = {}
-
-    assets: List[int] = inc_portfolio["assets"]
-    weights: List[float] = inc_portfolio["weights"]
-
-    constants: DefaultSimConstants = DefaultSimConstants(
-        initial_cash=inc_portfolio["initial_cash"],
-        wage=inc_portfolio["wage"],
-        income_growth=inc_portfolio["income_growth"],
-    )
-
     try:
-        inc: DefaultSimulationWithPriceAPI = DefaultSimulationWithPriceAPI(
-            assets, weights
-        )
-        inc.run(constants)
-    except IncomeSimInvalidInputException:
-        return JsonResponse(
-            {"status": "false", "message": "Inputs are invalid"}, status=404
-        )
-    except IncomeSimUnusableInputException:
-        return JsonResponse(
-            {"status": "false", "message": "Backtest could not run with inputs"},
-            status=404,
-        )
+        inc = DefaultSimulationWithPriceAPI(antevorta)
+        inc.run()
+        return JsonResponse({"data": dict(inc.results)}, status=200)
+    except AntevortaUnusableInputException:
+        return ErrorResponse.create(404, "Backtest could not run with inputs")
     except ConnectionError:
-        return JsonResponse(
-            {
-                "status": "false",
-                "message": "Couldn't complete request due to connection error",
-            },
-            status=503,
-        )
-    else:
-        ##mypy doesn't know runtime identity of TypedDict
-        resp["data"] = dict(inc.results)
-        return JsonResponse(resp, status=200)
+        return ErrorResopnse.create(503, "Couldn't complete simulation")
 
 
 @csrf_exempt  # type: ignore
 @require_POST  # type: ignore
-def backtest_portfolio(request: HttpRequest) -> JsonResponse:
+@alator_input()
+def alator_backtest(request: HttpRequest, alator: AlatorClientInput) -> JsonResponse:
     """
     Parameters
     --------
@@ -126,49 +91,17 @@ def backtest_portfolio(request: HttpRequest) -> JsonResponse:
     503
       Couldn't connect to downstream API
     """
-    req_body: Dict[str, Any] = json.loads(request.body.decode("utf-8"))
-    if "data" not in req_body:
-        return JsonResponse(
-            {"status": "false", "message": "Client passed no data to run backtest on"},
-            status=400,
-        )
-
-    bt_portfolio: Dict[str, List[Any]] = req_body["data"]
-    resp: Dict[str, Dict[str, Any]] = {}
-    resp["data"] = {}
-
-    assets: List[int] = bt_portfolio["assets"]
-    weights: List[float] = bt_portfolio["weights"]
-
     try:
-        bt: FixedSignalBackTestWithPriceAPI = FixedSignalBackTestWithPriceAPI(
-            assets, weights
-        )
+        bt: FixedSignalBackTestWithPriceAPI = FixedSignalBackTestWithPriceAPI(alator)
         bt.run()
-    except BackTestInvalidInputException:
-        return JsonResponse(
-            {"status": "false", "message": "Inputs are invalid"}, status=404
-        )
-    except BackTestUnusableInputException:
-        return JsonResponse(
-            {"status": "false", "message": "Backtest could not run with inputs"},
-            status=404,
-        )
+        return JsonResponse({"data": dict(bt.results)}, status=200)
+    except AlatorUnusableInputException:
+        return ErrorResponse.create(404, "Backtest could not run with inputs")
     except ConnectionError:
-        return JsonResponse(
-            {
-                "status": "false",
-                "message": "Couldn't complete request due to connection error",
-            },
-            status=503,
-        )
-    else:
-        ##mypy doesn't know runtime identity of TypedDict
-        resp["data"] = dict(bt.results)
-        return JsonResponse(resp, status=200)
+        return ErrorResponse.create(503, "Couldn't complete backtest")
 
 
-@regression_input_parse(has_window=True)  # type: ignore
+@regression_input(has_window=True)  # type: ignore
 @require_GET  # type: ignore
 def risk_attribution(
     request: HttpRequest, regression: RollingRegressionInput, coverage: List[Coverage]
@@ -176,10 +109,9 @@ def risk_attribution(
     """
     Parameters
     --------
-    ind : `List[int]`
-      List of independent variable asset ids for regression
-    dep : int
-      Asset id for dependent variable in regression
+    request: `HttpRequest`
+    regression: `RollingRegressionInput`
+    coverage: `List[Coverage]`
 
     Returns
     --------
@@ -194,31 +126,24 @@ def risk_attribution(
     503
       Couldn't connect to downstream API
     """
-    dep = regression["dep"]
-    ind = regression["ind"]
-    window = regression["window"]
-
     req: prices.PriceAPIRequestsMonthly = prices.PriceAPIRequestsMonthly(coverage)
     model_prices: Dict[int, DataSource] = req.get()
 
     try:
         rra: analysis.RollingRiskAttribution = analysis.RollingRiskAttribution(
-            dep=dep,
-            ind=ind,
+            roll_input=regression,
             data=model_prices,
-            window_length=window,
         )
         rra_res: RollingRiskAttributionResult = rra.run()
 
         ra: analysis.RiskAttribution = analysis.RiskAttribution(
-            dep=dep, ind=ind, data=model_prices
+            reg_input=regression, data=model_prices
         )
         ra_res: RiskAttributionResult = ra.run()
 
         bra: analysis.BootstrapRiskAttributionAlt = (
             analysis.BootstrapRiskAttributionAlt(
-                dep=dep,
-                ind=ind,
+                reg_input=regression,
                 data=model_prices,
             )
         )
@@ -246,7 +171,7 @@ def risk_attribution(
         )
 
 
-@regression_input_parse(has_window=False)  # type: ignore
+@regression_input(has_window=False)  # type: ignore
 @require_GET  # type: ignore
 def hypothetical_drawdown_simulation(
     request: HttpRequest, regression: RollingRegressionInput, coverage: List[Coverage]
@@ -254,10 +179,9 @@ def hypothetical_drawdown_simulation(
     """
     Parameters
     --------
-    ind : `List[int]`
-      List of independent variable asset ids for regression
-    dep : int
-      Asset id for dependent variable in regression
+    request: `HttpRequest`
+    regression: `RollingRegressionInput`
+    coverage: `List[Coverage]`
 
     Returns
     --------
@@ -272,16 +196,13 @@ def hypothetical_drawdown_simulation(
     503
       Couldn't connect to downstream API
     """
-    ind = regression["ind"]
-    dep = regression["dep"]
-
     req: prices.PriceAPIRequestsMonthly = prices.PriceAPIRequestsMonthly(coverage)
     model_prices: Dict[int, DataSource] = req.get()
 
     try:
         hde: analysis.HistoricalDrawdownEstimatorFromDataSources = (
             analysis.HistoricalDrawdownEstimatorFromDataSources(
-                ind=ind, dep=dep, model_prices=model_prices, threshold=-0.1
+                reg_input=regression, model_prices=model_prices, threshold=-0.1
             )
         )
         res: HistoricalDrawdownEstimatorResult = hde.get_results()

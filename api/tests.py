@@ -246,12 +246,12 @@ class TestIncomeSimulation(TestCase):
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_simulation_runs(self, mock_obj):
         instance = mock_obj.return_value
-        instance.get.return_value = self.fake_data
+        instance.get_overlapping.return_value = self.fake_data
 
         req = {
             "data": {
-                "assets": [666],
-                "weights": [1],
+                "assets": ["666"],
+                "weights": [1.0],
                 "initial_cash": 100000,
                 "wage": 10000,
                 "income_growth": 0.05,
@@ -267,7 +267,7 @@ class TestIncomeSimulation(TestCase):
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_simulation_throws_error_with_no_input(self, mock_obj):
         instance = mock_obj.return_value
-        instance.get.return_value = self.fake_data
+        instance.get_overlapping.return_value = self.fake_data
 
         req = {}
         req1 = {
@@ -283,13 +283,13 @@ class TestIncomeSimulation(TestCase):
         response = self.c.post("/api/incomesim", req, content_type="application/json")
         response1 = self.c.post("/api/incomesim", req1, content_type="application/json")
         self.assertTrue(response.status_code == 400)
-        self.assertTrue(response1.status_code == 404)
+        self.assertTrue(response1.status_code == 400)
         return
 
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_simulation_throws_error_with_bad_input(self, mock_obj):
         instance = mock_obj.return_value
-        instance.get.return_value = self.fake_data
+        instance.get_overlapping.return_value = self.fake_data
 
         req = {
             "data": {
@@ -353,18 +353,18 @@ class TestIncomeSimulation(TestCase):
         response4 = self.c.post("/api/incomesim", req4, content_type="application/json")
         response5 = self.c.post("/api/incomesim", req5, content_type="application/json")
 
-        self.assertTrue(response.status_code == 404)
-        self.assertTrue(response1.status_code == 404)
+        self.assertTrue(response.status_code == 400)
+        self.assertTrue(response1.status_code == 400)
         self.assertTrue(response2.status_code == 404)
-        self.assertTrue(response3.status_code == 404)
-        self.assertTrue(response4.status_code == 404)
-        self.assertTrue(response5.status_code == 404)
+        self.assertTrue(response3.status_code == 400)
+        self.assertTrue(response4.status_code == 400)
+        self.assertTrue(response5.status_code == 400)
         return
 
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_simulation_throws_error_with_failed_data_fetch(self, mock_obj):
         instance = mock_obj.return_value
-        instance.get.return_value = []
+        instance.get_overlapping.return_value = []
 
         req = {
             "data": {
@@ -403,7 +403,7 @@ class TestBacktestPortfolio(TestCase):
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_backtest_runs(self, mock_obj):
         instance = mock_obj.return_value
-        instance.get.return_value = self.fake_data
+        instance.get_overlapping.return_value = self.fake_data
 
         req = {"data": {"assets": [666], "weights": [1]}}
         response = self.c.post("/api/backtest", req, content_type="application/json")
@@ -421,7 +421,7 @@ class TestBacktestPortfolio(TestCase):
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_backtest_throws_error_with_no_input(self, mock_obj):
         instance = mock_obj.return_value
-        instance.get.return_value = self.fake_data
+        instance.get_overlapping.return_value = self.fake_data
 
         req = {}
         req1 = {"data": {"assets": [], "weights": []}}
@@ -429,13 +429,13 @@ class TestBacktestPortfolio(TestCase):
         response = self.c.post("/api/backtest", req, content_type="application/json")
         response1 = self.c.post("/api/backtest", req1, content_type="application/json")
         self.assertTrue(response.status_code == 400)
-        self.assertTrue(response1.status_code == 404)
+        self.assertTrue(response1.status_code == 400)
         return
 
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_backtest_throws_error_with_bad_input(self, mock_obj):
         instance = mock_obj.return_value
-        instance.get.return_value = self.fake_data
+        instance.get_overlapping.return_value = self.fake_data
 
         req = {"data": {"assets": [666], "weights": []}}
         req1 = {"data": {"assets": [], "weights": [1]}}
@@ -444,15 +444,15 @@ class TestBacktestPortfolio(TestCase):
         response = self.c.post("/api/backtest", req, content_type="application/json")
         response1 = self.c.post("/api/backtest", req1, content_type="application/json")
         response2 = self.c.post("/api/backtest", req2, content_type="application/json")
-        self.assertTrue(response.status_code == 404)
-        self.assertTrue(response1.status_code == 404)
+        self.assertTrue(response.status_code == 400)
+        self.assertTrue(response1.status_code == 400)
         self.assertTrue(response2.status_code == 404)
         return
 
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_backtest_throws_error_with_failed_data_fetch(self, mock_obj):
         instance = mock_obj.return_value
-        instance.get.return_value = []
+        instance.get_overlapping.return_value = []
 
         req = {"data": {"assets": [666], "weights": [1]}}
 

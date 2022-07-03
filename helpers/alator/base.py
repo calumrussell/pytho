@@ -2,16 +2,7 @@ from typing import List, Dict, TypedDict
 import pandas as pd
 
 
-class BackTestInvalidInputException(Exception):
-    """Throws when BackTest is missing key inputs needed
-    to complete
-    """
-
-    def __init__(self) -> None:
-        self.message = "Missing either assets or weights or lengths are different"
-
-
-class BackTestUnusableInputException(Exception):
+class AlatorUnusableInputException(Exception):
     """Throws when BackTest has valid inputs but those inputs
     can't be used to create a valid BackTest
     """
@@ -20,7 +11,12 @@ class BackTestUnusableInputException(Exception):
         self.message = "Data input cannot create a valid backtest"
 
 
-class BackTestResults(TypedDict):
+class AlatorClientInput(TypedDict):
+    assets: List[str]
+    weights: List[float]
+
+
+class AlatorPerformanceOutput(TypedDict):
     ret: float
     cagr: float
     vol: float

@@ -15,6 +15,9 @@ class FactorSource:
     def get_length(self) -> int:
         return len(self.data)
 
+    def filter_dates(self, dates: List[pd.Timestamp]):
+        return FactorSource(self.data.loc[dates])
+
     def get_dates(self) -> pd.Index:
         return self.data.index
 
@@ -66,6 +69,9 @@ class InvestPySource:
 
     def get_length(self) -> int:
         return len(self.data)
+
+    def filter_dates(self, dates: List[pd.Timestamp]):
+        return InvestPySource(self.data.loc[dates])
 
     def get_dates(self) -> pd.Index:
         return self.data.index

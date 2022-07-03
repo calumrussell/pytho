@@ -80,6 +80,15 @@ class PriceAPIRequests:
     def get(self) -> Dict[int, DataSource]:
         return {int(i.id): j.get() for i, j in zip(self.coverage, self.requests)}
 
+    def get_overlapping(self) -> Dict[int, DataSource]:
+        sources = [request.get() for request in self.requests]
+        dates = [set(source.get_dates()) for source in sources]
+        date_intersection = sorted(set.intersection(*dates))
+        filtered_sources = [
+            source.filter_dates(date_intersection) for source in sources
+        ]
+        return {int(i.id): source for i, source in zip(self.coverage, filtered_sources)}
+
     def __init__(self, coverage_objs: List[Coverage]):
         self.coverage: List[Coverage] = coverage_objs
         self.requests: List[PriceAPIRequest] = [

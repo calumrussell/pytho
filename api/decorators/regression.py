@@ -5,20 +5,10 @@ from django.http.request import HttpRequest
 from django.http.response import JsonResponse
 
 from api.models import Coverage
+from helpers.analysis.riskattribution import RegressionInput, RollingRegressionInput
 
 
-class RegressionInput(TypedDict):
-    ind: List[int]
-    dep: int
-
-
-class RollingRegressionInput(TypedDict):
-    ind: List[int]
-    dep: int
-    window: int
-
-
-def regression_input_parse(has_window: bool = False):
+def regression_input(has_window: bool = False):
     """
     Formats query string variables used in routes that
     need regression-type inputs. Will throw errors from
