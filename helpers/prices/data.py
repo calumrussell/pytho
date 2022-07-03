@@ -1,9 +1,9 @@
-from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union, TypedDict
 import datetime
-import pandas as pd
+from typing import List, Optional, Type, TypeVar, Union
+
 import numpy as np
 import numpy.typing as npt
-from enum import Enum
+import pandas as pd
 
 
 class FactorSource:
@@ -37,7 +37,7 @@ class FactorSource:
         return self.get_returns()["ret"].to_numpy(dtype=np.float64)  # type:ignore
 
     def __init__(self, df: pd.DataFrame):
-        self.data: pd.DataFrame = pd.DataFrame({})
+        self.data = pd.DataFrame({})
         if "period" not in df.columns:
             self.data = df
         else:
@@ -50,9 +50,9 @@ class FactorSource:
 class InvestPySource:
     def convert_to_monthly(self) -> None:
         ##Non-idempotent
-        self.data.index = pd.to_datetime(self.data.index, unit="s")
-        df: pd.DataFrame = self.data.groupby(
-            by=[self.data.index.year, self.data.index.month]
+        self.data.index = pd.to_datetime(self.data.index.to_list(), unit="s")
+        df = self.data.groupby(
+            by=[self.data.index.year, self.data.index.month]  # type: ignore
         ).last()
         df.index.set_names(["year", "month"], inplace=True)
         df.reset_index(inplace=True)
@@ -61,10 +61,10 @@ class InvestPySource:
             df["year"].astype(str) + "-" + df["month"].astype(str), format="%Y-%m"
         )
         df["time"] = df["time"].apply(lambda x: int(x.timestamp() * 1))
-        filtered: pd.DataFrame = df[["time", "ret", "Open", "Close"]].copy()
+        filtered = df[["time", "ret", "Open", "Close"]].copy()
         filtered.set_index("time", inplace=True)
         filtered.dropna(inplace=True)
-        self.data: pd.DataFrame = filtered
+        self.data = filtered
         return
 
     def get_length(self) -> int:
@@ -90,17 +90,17 @@ class InvestPySource:
 
     def __init__(self, df: pd.DataFrame):
         if "ret" in df.columns:
-            self.data: pd.DataFrame = df
+            self.data = df
             return
         else:
             df.reset_index(inplace=True)
             df["ret"] = round(df["Close"].pct_change(1) * 100, 3)
             df.dropna(inplace=True)
             df["time"] = df["Date"].apply(lambda x: int(x.timestamp() * 1))
-            filtered: pd.DataFrame = df[["time", "ret", "Open", "Close"]]
+            filtered = df[["time", "ret", "Open", "Close"]]
             filtered.set_index("time", inplace=True)
-            self.data: pd.DataFrame = filtered  # type: ignore
-            self.length: int = len(filtered)
+            self.data = filtered  # type: ignore
+            self.length = len(filtered)
 
 
 DataSource = Union[FactorSource, InvestPySource]
@@ -128,7 +128,7 @@ class FakeData:
         if seed:
             np.random.seed(seed)
 
-        dates: List[pd.Timestamp] = [
+        dates = [
             pd.Timestamp(datetime.date(2000, 9, 1)) + pd.DateOffset(days=i)
             for i in range(length)
         ]
@@ -150,7 +150,7 @@ class FakeData:
         if seed:
             np.random.seed(seed)
 
-        factor_dates: List[int] = [
+        factor_dates = [
             (
                 pd.Timestamp(datetime.date(2001, 9, 1)) + pd.DateOffset(months=i)
             ).timestamp()

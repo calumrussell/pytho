@@ -1,13 +1,13 @@
-from typing import List, Dict
+from panacea import AntevortaBasicInput, antevorta_basic
 
 from api.models import Coverage
 from helpers import prices
+
 from .base import (
-    AntevortaResults,
     AntevortaClientInput,
+    AntevortaResults,
     AntevortaUnusableInputException,
 )
-from panacea import income_simulation, IncomeInput
 
 
 class DefaultSimulationWithPriceAPI:
@@ -23,7 +23,7 @@ class DefaultSimulationWithPriceAPI:
     signal: `Dict[str, float]`
     initial_cash: float
     wage: float
-    income_growth: float
+    wage_growth: float
     results: `AntevortaResults`
 
     Raises
@@ -52,17 +52,17 @@ class DefaultSimulationWithPriceAPI:
             raise AntevortaUnusableInputException
 
         coverage_ids = [str(c.id) for c in self.coverage]
-        inc_in = IncomeInput(
+        inc_in = AntevortaBasicInput(
             assets=coverage_ids,
             dates=dates,
             weights=self.signal,
             close=close,
             initial_cash=self.initial_cash,
             wage=self.wage,
-            income_growth=self.income_growth,
+            wage_growth=self.wage_growth,
         )
 
-        inc = income_simulation(inc_in)
+        inc = antevorta_basic(inc_in)
 
         self.results = AntevortaResults(
             cash=inc[0],
@@ -73,11 +73,9 @@ class DefaultSimulationWithPriceAPI:
         return
 
     def __init__(self, antevorta: AntevortaClientInput):
-        self.weights: List[float] = antevorta["weights"]
+        self.weights = antevorta["weights"]
         try:
-            self.coverage: List[Coverage] = Coverage.objects.filter(
-                id__in=antevorta["assets"]
-            )
+            self.coverage = Coverage.objects.filter(id__in=antevorta["assets"])
         except ValueError:
             raise AntevortaUnusableInputException
 
@@ -87,10 +85,8 @@ class DefaultSimulationWithPriceAPI:
         if len(self.coverage) != len(antevorta["assets"]):
             raise AntevortaUnusableInputException
 
-        self.signal: Dict[str, float] = {
-            str(i): j for (i, j) in zip(antevorta["assets"], self.weights)
-        }
+        self.signal = {str(i): j for (i, j) in zip(antevorta["assets"], self.weights)}
         self.initial_cash = antevorta["initial_cash"]
         self.wage = antevorta["wage"]
-        self.income_growth = antevorta["income_growth"]
+        self.wage_growth = antevorta["wage_growth"]
         return

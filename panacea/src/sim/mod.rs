@@ -1,8 +1,5 @@
-mod backtest;
-mod common;
-mod income;
+mod alator;
+mod antevorta;
 
-pub use backtest::fixedweight_backtest;
-pub use backtest::BacktestInput;
-pub use income::income_simulation;
-pub use income::IncomeInput;
+pub use self::alator::{alator_backtest, AlatorInput};
+pub use self::antevorta::{AntevortaBasicInput, antevorta_basic};

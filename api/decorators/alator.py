@@ -1,8 +1,8 @@
 # type: ignore
 from functools import wraps
 import json
+
 from django.http.request import HttpRequest
-from django.http.response import JsonResponse
 
 from helpers.alator import AlatorClientInput
 from helpers.response import ErrorResponse

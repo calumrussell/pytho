@@ -22,3 +22,5 @@ helpers/rust/Cargo.lock
 venv
 node_modules/.yarn-integrity
 yarn.lock
+mypy.ini
+typings/

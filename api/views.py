@@ -1,12 +1,17 @@
-from tokenize import String
-from typing import Dict, List, Any
-from django.http import JsonResponse, HttpRequest
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST, require_GET
-import json
+from typing import Any, Dict, List
 
+from django.http import HttpRequest, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
+
+from api.decorators import alator_input, antevorta_input, regression_input
 from api.models import Coverage
 from helpers import analysis, prices
+from helpers.alator import (
+    AlatorClientInput,
+    AlatorUnusableInputException,
+    FixedSignalBackTestWithPriceAPI,
+)
 from helpers.analysis.drawdown import HistoricalDrawdownEstimatorResult
 from helpers.analysis.riskattribution import (
     BootstrapRiskAttributionResult,
@@ -14,20 +19,10 @@ from helpers.analysis.riskattribution import (
     RollingRegressionInput,
     RollingRiskAttributionResult,
 )
-from api.decorators import (  # type: ignore
-    regression_input,
-    alator_input,
-    antevorta_input,
-)
-from helpers.alator import (
-    FixedSignalBackTestWithPriceAPI,
-    AlatorUnusableInputException,
-    AlatorClientInput,
-)
 from helpers.antevorta import (
-    DefaultSimulationWithPriceAPI,
-    AntevortaUnusableInputException,
     AntevortaClientInput,
+    AntevortaUnusableInputException,
+    DefaultSimulationWithPriceAPI,
 )
 from helpers.prices.data import DataSource
 from helpers.response import ErrorResponse
@@ -65,7 +60,7 @@ def antevorta_simulation(
     except AntevortaUnusableInputException:
         return ErrorResponse.create(404, "Backtest could not run with inputs")
     except ConnectionError:
-        return ErrorResopnse.create(503, "Couldn't complete simulation")
+        return ErrorResponse.create(503, "Couldn't complete simulation")
 
 
 @csrf_exempt  # type: ignore
@@ -149,7 +144,7 @@ def risk_attribution(
         )
         bra_res: BootstrapRiskAttributionResult = bra.run()
 
-        res: Dict[String, Any] = {
+        res: Dict[str, Any] = {
             "core": ra_res,
             "rolling": rra_res,
             "bootstrap": bra_res,
@@ -226,20 +221,21 @@ def hypothetical_drawdown_simulation(
 
 @require_GET  # type: ignore
 def price_coverage_suggest(request: HttpRequest) -> JsonResponse:
-    security_type: str = request.GET.get("security_type", None)
+    security_type = request.GET.get("security_type", None)
     if not security_type:
         return JsonResponse(
             {"status": "false", "message": "security_type is required parameter"},
             status=400,
         )
 
-    suggest_str: str = request.GET.get("s", None).lower()
+    suggest_str = request.GET.get("s", None)
     if not suggest_str:
         return JsonResponse(
             {"status": "false", "message": "s is required parameter"}, status=400
         )
+    suggest_str_lower = suggest_str.lower()
 
-    if len(suggest_str) < 2:
+    if len(suggest_str_lower) < 2:
         ##We return empty whenever string isn't long enough to return good results
         return JsonResponse({"coverage": []}, status=200)
 
@@ -248,7 +244,7 @@ def price_coverage_suggest(request: HttpRequest) -> JsonResponse:
             "coverage": list(
                 Coverage.objects.filter(
                     security_type=security_type,
-                    name__icontains=suggest_str,
+                    name__icontains=suggest_str_lower,
                 ).values()
             )
         },

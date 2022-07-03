@@ -6,11 +6,11 @@ use pyo3::wrap_pyfunction;
 
 #[pymodule]
 fn panacea(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<sim::BacktestInput>()?;
-    m.add_class::<sim::IncomeInput>()?;
-    m.add_function(wrap_pyfunction!(sim::income_simulation, m)?)
+    m.add_class::<sim::AlatorInput>()?;
+    m.add_class::<sim::AntevortaBasicInput>()?;
+    m.add_function(wrap_pyfunction!(sim::alator_backtest, m)?)
         .unwrap();
-    m.add_function(wrap_pyfunction!(sim::fixedweight_backtest, m)?)
+    m.add_function(wrap_pyfunction!(sim::antevorta_basic, m)?)
         .unwrap();
     m.add_function(wrap_pyfunction!(calcs::max_dd_threshold_position, m)?)
         .unwrap();

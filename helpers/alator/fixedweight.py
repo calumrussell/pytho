@@ -1,16 +1,13 @@
-import pandas as pd
-from pandas.core.frame import DataFrame
-from typing import List, Dict, Tuple
+from panacea import AlatorInput, alator_backtest
 
 from api.models import Coverage
 from helpers import prices
-from helpers.prices.data import DataSource, SourceFactory
+
 from .base import (
-    AlatorPerformanceOutput,
     AlatorClientInput,
+    AlatorPerformanceOutput,
     AlatorUnusableInputException,
 )
-from panacea import fixedweight_backtest, BacktestInput
 
 
 class FixedSignalBackTestWithPriceAPI:
@@ -22,7 +19,7 @@ class FixedSignalBackTestWithPriceAPI:
     Attributes
     ---------
     weights: `List[float]`
-    coverage: `List[Coverage]`
+    coverage: `QuerySet[Coverage]`
     signal: `Dict[str, float]`
     results: `AlatorPerformanceOutput`
 
@@ -34,17 +31,17 @@ class FixedSignalBackTestWithPriceAPI:
         Failed to connect to InvestPySource
     """
 
-    def run(self) -> None:
+    def run(self):
         price_request = prices.PriceAPIRequests(self.coverage)
         try:
             bt_sources = price_request.get_overlapping()
-        except Exception:
-            raise AlatorUnusableInputException
+        except Exception as exc:
+            raise AlatorUnusableInputException from exc
 
         dates = None
         close = {}
         for source in bt_sources:
-            if dates == None:
+            if dates is None:
                 dates = list(bt_sources[source].get_dates())
             close[str(source)] = bt_sources[source].get_close()["Close"].to_list()
 
@@ -53,32 +50,33 @@ class FixedSignalBackTestWithPriceAPI:
 
         coverage_ids = [str(c.id) for c in self.coverage]
 
-        bt_in = BacktestInput(
-            assets=coverage_ids,
-            dates=dates,
-            weights=self.signal,
-            close=close,
-        )
+        if dates:
+            bt_in = AlatorInput(
+                assets=coverage_ids,
+                dates=dates,
+                weights=self.signal,
+                close=close,
+            )
+        else:
+            raise AlatorUnusableInputException
 
-        bt = fixedweight_backtest(bt_in)
+        bt_res = alator_backtest(bt_in)
         self.results = AlatorPerformanceOutput(
-            ret=bt[0] * 100,
-            cagr=bt[1] * 100,
-            vol=bt[2] * 100,
-            mdd=bt[3] * 100,
-            sharpe=bt[4],
-            values=bt[5],
-            returns=bt[6],
-            dates=bt[7],
+            ret=bt_res[0] * 100,
+            cagr=bt_res[1] * 100,
+            vol=bt_res[2] * 100,
+            mdd=bt_res[3] * 100,
+            sharpe=bt_res[4],
+            values=bt_res[5],
+            returns=bt_res[6],
+            dates=bt_res[7],
         )
         return
 
     def __init__(self, alator: AlatorClientInput):
-        self.weights: List[float] = alator["weights"]
+        self.weights = alator["weights"]
         try:
-            self.coverage: List[Coverage] = Coverage.objects.filter(
-                id__in=alator["assets"]
-            )
+            self.coverage = Coverage.objects.filter(id__in=alator["assets"])
         except ValueError:
             raise AlatorUnusableInputException
 
@@ -88,7 +86,6 @@ class FixedSignalBackTestWithPriceAPI:
         if len(self.coverage) != len(alator["assets"]):
             raise AlatorUnusableInputException
 
-        self.signal: Dict[str, float] = {
-            str(i): j for (i, j) in zip(alator["assets"], self.weights)
-        }
+        self.signal = {str(i): j for (i, j) in zip(alator["assets"], self.weights)}
+        self.results = None
         return

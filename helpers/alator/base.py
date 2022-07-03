@@ -1,5 +1,4 @@
-from typing import List, Dict, TypedDict
-import pandas as pd
+from typing import List, TypedDict
 
 
 class AlatorUnusableInputException(Exception):

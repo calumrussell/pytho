@@ -24,7 +24,7 @@ class AntevortaClientInput(TypedDict):
     weights: List[float]
     initial_cash: float
     wage: float
-    income_growth: float
+    wage_growth: float
 
 
 class AntevortaResults(TypedDict):
