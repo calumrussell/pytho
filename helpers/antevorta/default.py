@@ -44,11 +44,11 @@ class DefaultSimulationWithPriceAPI:
         dates = None
         close = {}
         for source in inc_sources:
-            if dates == None:
+            if dates is None:
                 dates = list(inc_sources[source].get_dates())
             close[str(source)] = inc_sources[source].get_close()["Close"].to_list()
 
-        if not close:
+        if not close or not dates:
             raise AntevortaUnusableInputException
 
         coverage_ids = [str(c.id) for c in self.coverage]
