@@ -10,7 +10,7 @@ use pyo3::prelude::*;
 use std::collections::HashMap;
 
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AntevortaBasicInput {
     pub assets: Vec<String>,
     pub weights: HashMap<String, f64>,
@@ -94,7 +94,7 @@ pub fn antevorta_basic(input: &AntevortaBasicInput) -> PyResult<PySimResults> {
     let port = SimPortfolio::new(simbrkr);
     let ia = StaticInvestmentStrategy::new(Schedule::EveryFriday, weights);
 
-    let growth: f64 = (1.0 + input.wage_growth).powf(1.0 / 12.0);
+    let growth: f64 = (1.0 + input.wage_growth).powf(1.0 / 12.0) - 1.0;
     let mut state_builder = UKSimulationBuilder::new(input.initial_cash.into(), 0.0.into(), NIC::A, ia, port);
     let employment = UKIncome::Employment(input.wage.into(), Schedule::EveryMonth(25))
         .with_fixedrate_growth(&start_date.into(), &(sim_len as i64), &growth);
