@@ -21,10 +21,16 @@ export const weightedPortfolio = () => {
     return ws;
   };
 
+  const toPost = () => ({
+    'assets': assets.map((i) => parseInt(i.id)),
+    'weights': weights.map((i) => parseInt(i)/100),
+  })
+
   const getPortfolio = () => ({
     assets,
     weights,
   });
+
   const addAsset = (asset, weight) => {
     weights = [
       ...weights,
@@ -35,6 +41,7 @@ export const weightedPortfolio = () => {
       asset,
     ];
   };
+
   const removeAsset = (idx) => {
     assets.splice(idx, 1);
     weights.splice(idx, 1);
@@ -44,41 +51,8 @@ export const weightedPortfolio = () => {
     getPortfolio,
     addAsset,
     removeAsset,
+    toPost,
     getLength,
     getCopy,
-  };
-};
-
-export const sharePortfolio = () => {
-  let assets = [
-  ];
-  let shares = [
-  ];
-
-  const getPortfolio = () => {
-    assets, shares;
-  };
-  const addShares = (holding) => {
-    shares = [
-      ...shares,
-      holding,
-    ];
-  };
-  const addAsset = (asset) => {
-    assets = [
-      ...obj.assets,
-      asset,
-    ];
-  };
-  const removeAsset = (idx) => {
-    assets.splice(idx, 1);
-    shares.splice(idx, 1);
-  };
-
-  return {
-    getPortfolio,
-    addShares,
-    addAsset,
-    removeAsset,
   };
 };

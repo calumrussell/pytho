@@ -78,6 +78,29 @@ export const Home = (props) => {
         </DoubleHorizontalSpacer>
       </ComponentWrapperAddedVertical>
       <ComponentWrapperAddedVertical>
+        <HomeLinkWrapperStyle>
+          <Link
+            to='/incomesim'>
+            <PageOpener>
+              <Text
+                focus>
+                  Income Simulation
+              </Text>
+              <Text
+                italic
+                light>
+                Click to open
+              </Text>
+            </PageOpener>
+          </Link>
+        </HomeLinkWrapperStyle>
+        <DoubleHorizontalSpacer>
+          <Text>
+            Construct a simulation
+          </Text>
+        </DoubleHorizontalSpacer>
+      </ComponentWrapperAddedVertical>
+      <ComponentWrapperAddedVertical>
         <Link
           to='/exposureanalysis'>
           <HomeLinkWrapperStyle>

@@ -47,7 +47,7 @@ FormLabel.propTypes = {
 };
 
 const StyledForm = styled.form`
-  input[type="text"] {
+  input[type="text"], input[type="number"] {
     background-color: transparent;
     box-shadow: none;
     border: 1px solid var(--alt-background-color);

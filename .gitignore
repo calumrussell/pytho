@@ -1,5 +1,5 @@
 *.sqlite3
-js/dist
+js/dist/*
 js/package-lock.json
 js/node_modules
 js/yarn.lock

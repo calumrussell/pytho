@@ -26,8 +26,9 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 DEBUG = True if os.environ.get("DJANGO_DEBUG") == "true" else False
 
 ALLOWED_HOSTS = ["www.pytho.uk", "pytho.uk", "127.0.0.1", "localhost"]
-if os.environ.get("DJANGO_ALLOWED_HOSTS"):
-    ALLOWED_HOSTS.append(os.envion.get("DJANGO_ALLOWED_HOSTS"))
+host = os.environ.get("DJANGO_ALLOWED_HOSTS")
+if host:
+    ALLOWED_HOSTS.append(host)
 
 # Application definition
 

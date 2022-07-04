@@ -17,20 +17,11 @@ import {
   Builder,
 } from './builder';
 
-const Athena = (props) => (
-  <PageWrapper
-    id="riskattribution-main">
-    <Builder />
-    <ModelResults />
-  </PageWrapper>
-);
-
-
 export const AthenaApp = (props) => (
-  <ModelProvider>
+  <ModelProvider id="riskattribution-main">
     <LoaderProvider>
-      <Athena
-        { ...props } />
+      <Builder />
+      <ModelResults />
     </LoaderProvider>
   </ModelProvider>
 );

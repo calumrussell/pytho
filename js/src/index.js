@@ -18,6 +18,9 @@ import {
   AthenaApp,
 } from './containers/athena';
 import {
+  AntevortaApp,
+} from './containers/antevorta';
+import {
   Home,
 } from './components/home';
 import {
@@ -76,6 +79,12 @@ const App = (props) => {
                 path="/exposureanalysis">
                 <PageWrapper>
                   <AthenaApp />
+                </PageWrapper>
+              </Route>
+              <Route
+                path="/incomesim">
+                <PageWrapper>
+                  <AntevortaApp />
                 </PageWrapper>
               </Route>
               <Route

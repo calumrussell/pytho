@@ -60,6 +60,12 @@ export const SideMenu = ({
                 Exposure Analysis
               </Link>
             </li>
+            <li>
+              <Link
+                to='/incomesim'>
+                Income Simulation 
+              </Link>
+            </li>
           </ul>
         </Menu>
       </Wrapper>

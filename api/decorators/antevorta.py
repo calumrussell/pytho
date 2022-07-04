@@ -17,6 +17,7 @@ def antevorta_input():
         @wraps(func)
         def inner(request: HttpRequest, *args, **kwargs):
 
+            print(request.body)
             req_body = json.loads(request.body.decode("utf-8"))
             if "data" not in req_body:
                 return ErrorResponse.create(
