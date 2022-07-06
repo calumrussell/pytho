@@ -9,8 +9,8 @@ name = "panacea"
 crate-type = ["cdylib"]
 
 [dependencies]
-alator = { "branch" = "main", git = "ssh://git@100.108.118.115:14401/calum/alator.git" }
-antevorta = { "branch" = "master", git = "ssh://git@100.108.118.115:14401/calum/antevorta.git" }
+alator = { "branch" = "main", git = "http://100.108.118.115:14400/calum/alator.git" }
+antevorta = { "tag" = "v0.0.3", git = "http://100.108.118.115:14400/calum/antevorta.git" }
 
 [dependencies.pyo3]
 version = "0.16.3"

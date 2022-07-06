@@ -4,8 +4,8 @@ version = 3
 
 [[package]]
 name = "alator"
-version = "0.0.2"
-source = "git+ssh://git@100.108.118.115:14401/calum/alator.git?branch=main#d9658439da2e67ba898ccf5b52956e83b23c974c"
+version = "0.0.5"
+source = "git+http://100.108.118.115:14400/calum/alator.git?branch=main#4ce444b7fc18392939f76a74533ac32d98916c7a"
 dependencies = [
  "itertools",
  "rand",
@@ -15,8 +15,8 @@ dependencies = [
 
 [[package]]
 name = "antevorta"
-version = "0.0.2"
-source = "git+ssh://git@100.108.118.115:14401/calum/antevorta.git?branch=master#6eb52dc3ca2181743e77da64bbe1b3f1f9a5a340"
+version = "0.0.3"
+source = "git+http://100.108.118.115:14400/calum/antevorta.git?tag=v0.0.3#d4d8380c833bda44f3be3166da15db9d0c61ef53"
 dependencies = [
  "alator",
  "rand",
@@ -44,9 +44,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "either"
-version = "1.6.1"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
+checksum = "3f107b87b6afc2a64fd13cac55fe06d6c8859f12d4b14cbcdd2c67d0976781be"
 
 [[package]]
 name = "getrandom"
@@ -117,9 +117,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.12.0"
+version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7709cef83f0c1f58f666e746a08b21e0085f7440fa6a29cc194d68aac97a4225"
+checksum = "18a6dbe30758c9f83eb00cbea4ac95966305f5a7772f3f42ebfc7fc7eddbd8e1"
 
 [[package]]
 name = "panacea"
@@ -295,9 +295,9 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "smallvec"
-version = "1.8.1"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc88c725d61fc6c3132893370cac4a0200e3fedf5da8331c570664b1987f5ca2"
+checksum = "2fd0db749597d91ff862fd1d55ea87f7855a744a8425a64695b6fca237d1dad1"
 
 [[package]]
 name = "syn"
