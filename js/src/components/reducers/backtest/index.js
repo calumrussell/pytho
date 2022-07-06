@@ -53,15 +53,12 @@ export const useBacktest = () => {
       });
     }
 
-    const port = portObj.getPortfolio();
-    const toPost = {
-      'data': {
-        'assets': port.assets.map((i) => parseInt(i.id)),
-        'weights': port.weights.map((i) => parseInt(i)/100),
-      },
+    const port = portObj.toPost();
+    const backtestInput = {
+      'data': port
     };
     const backtestUrl = `/api/backtest`;
-    return axios.post(process.env.API_URL + backtestUrl, toPost)
+    return axios.post(process.env.API_URL + backtestUrl, backtestInput)
         .then((res) => res.data)
         .then((results) => dispatch({
           type: 'ADD_RES',

@@ -22,17 +22,18 @@ import {
 
 const Aphrodite = (props) => {
   return (
-    <PageWrapper
-      data-testid="app">
-      <SectionWrapper>
+    <React.Fragment>
+      <SectionWrapper data-testid="app">
         <ComponentWrapper>
           <PortfolioBuilder />
           <PortfolioDisplay />
           <PortfolioLoader />
         </ComponentWrapper>
       </SectionWrapper>
-      <Results />
-    </PageWrapper>
+      <SectionWrapper>
+        <Results />
+      </SectionWrapper>
+    </React.Fragment>
   );
 };
 

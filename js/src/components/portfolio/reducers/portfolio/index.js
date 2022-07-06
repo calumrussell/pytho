@@ -2,7 +2,7 @@ import React from 'react';
 
 import {
   weightedPortfolio,
-} from '@Components/portfolio/helpers/portfolio';
+} from './helpers/portfolio';
 
 const initialState = {
   portfolio: null,

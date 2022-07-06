@@ -1,33 +1,72 @@
-from tokenize import String
-from typing import Dict, List, Any
-from django.http import JsonResponse, HttpRequest
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST, require_GET
-import json
+from typing import Any, Dict, List
 
+from django.http import HttpRequest, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
+
+from api.decorators import alator_input, antevorta_input, regression_input
 from api.models import Coverage
 from helpers import analysis, prices
+from helpers.alator import (
+    AlatorClientInput,
+    AlatorUnusableInputException,
+    FixedSignalBackTestWithPriceAPI,
+)
 from helpers.analysis.drawdown import HistoricalDrawdownEstimatorResult
 from helpers.analysis.riskattribution import (
     BootstrapRiskAttributionResult,
     RiskAttributionResult,
+    RollingRegressionInput,
     RollingRiskAttributionResult,
 )
-from api.decorators import (  # type: ignore
-    regression_input_parse,
-    RollingRegressionInput,
-)
-from helpers.backtest import (
-    FixedSignalBackTestWithPriceAPI,
-    BackTestUnusableInputException,
-    BackTestInvalidInputException,
+from helpers.antevorta import (
+    AntevortaClientInput,
+    AntevortaUnusableInputException,
+    DefaultSimulationWithPriceAPI,
 )
 from helpers.prices.data import DataSource
+from helpers.response import ErrorResponse
 
 
 @csrf_exempt  # type: ignore
 @require_POST  # type: ignore
-def backtest_portfolio(request: HttpRequest) -> JsonResponse:
+@antevorta_input()
+def antevorta_simulation(
+    request: HttpRequest, antevorta: AntevortaClientInput
+) -> JsonResponse:
+    """
+    Parameters
+    --------
+    data : `Dict[assets : List[int], weights : List[float]], initial_cash: float, wage: float, income_growth: float`
+      Assets and weights to run static benchmark against
+
+    Returns
+    --------
+    200
+      Income simulation runs successfully and returns performance numbers
+    400
+      Client passes an input that is does not have any required parameters
+    404
+      Client passes a valid input but these can't be used to run a backtest
+    405
+      Client attempts a method other than POST
+    503
+      Couldn't connect to downstream API
+    """
+    try:
+        inc = DefaultSimulationWithPriceAPI(antevorta)
+        inc.run()
+        return JsonResponse({"data": dict(inc.results)}, status=200)
+    except AntevortaUnusableInputException:
+        return ErrorResponse.create(404, "Backtest could not run with inputs")
+    except ConnectionError:
+        return ErrorResponse.create(503, "Couldn't complete simulation")
+
+
+@csrf_exempt  # type: ignore
+@require_POST  # type: ignore
+@alator_input()
+def alator_backtest(request: HttpRequest, alator: AlatorClientInput) -> JsonResponse:
     """
     Parameters
     --------
@@ -47,49 +86,17 @@ def backtest_portfolio(request: HttpRequest) -> JsonResponse:
     503
       Couldn't connect to downstream API
     """
-    req_body: Dict[str, Any] = json.loads(request.body.decode("utf-8"))
-    if "data" not in req_body:
-        return JsonResponse(
-            {"status": "false", "message": "Client passed no data to run backtest on"},
-            status=400,
-        )
-
-    bt_portfolio: Dict[str, List[Any]] = req_body["data"]
-    resp: Dict[str, Dict[str, Any]] = {}
-    resp["data"] = {}
-
-    assets: List[int] = bt_portfolio["assets"]
-    weights: List[float] = bt_portfolio["weights"]
-
     try:
-        bt: FixedSignalBackTestWithPriceAPI = FixedSignalBackTestWithPriceAPI(
-            assets, weights
-        )
+        bt: FixedSignalBackTestWithPriceAPI = FixedSignalBackTestWithPriceAPI(alator)
         bt.run()
-    except BackTestInvalidInputException:
-        return JsonResponse(
-            {"status": "false", "message": "Inputs are invalid"}, status=404
-        )
-    except BackTestUnusableInputException:
-        return JsonResponse(
-            {"status": "false", "message": "Backtest could not run with inputs"},
-            status=404,
-        )
+        return JsonResponse({"data": dict(bt.results)}, status=200)
+    except AlatorUnusableInputException:
+        return ErrorResponse.create(404, "Backtest could not run with inputs")
     except ConnectionError:
-        return JsonResponse(
-            {
-                "status": "false",
-                "message": "Couldn't complete request due to connection error",
-            },
-            status=503,
-        )
-    else:
-        ##mypy doesn't know runtime identity of TypedDict
-        resp["data"] = dict(bt.results)
-        return JsonResponse(resp, status=200)
+        return ErrorResponse.create(503, "Couldn't complete backtest")
 
 
-@regression_input_parse(has_window=True)  # type: ignore
+@regression_input(has_window=True)  # type: ignore
 @require_GET  # type: ignore
 def risk_attribution(
     request: HttpRequest, regression: RollingRegressionInput, coverage: List[Coverage]
@@ -97,10 +104,9 @@ def risk_attribution(
     """
     Parameters
     --------
-    ind : `List[int]`
-      List of independent variable asset ids for regression
-    dep : int
-      Asset id for dependent variable in regression
+    request: `HttpRequest`
+    regression: `RollingRegressionInput`
+    coverage: `List[Coverage]`
 
     Returns
     --------
@@ -115,37 +121,30 @@ def risk_attribution(
     503
       Couldn't connect to downstream API
     """
-    dep = regression["dep"]
-    ind = regression["ind"]
-    window = regression["window"]
-
     req: prices.PriceAPIRequestsMonthly = prices.PriceAPIRequestsMonthly(coverage)
     model_prices: Dict[int, DataSource] = req.get()
 
     try:
         rra: analysis.RollingRiskAttribution = analysis.RollingRiskAttribution(
-            dep=dep,
-            ind=ind,
+            roll_input=regression,
             data=model_prices,
-            window_length=window,
         )
         rra_res: RollingRiskAttributionResult = rra.run()
 
         ra: analysis.RiskAttribution = analysis.RiskAttribution(
-            dep=dep, ind=ind, data=model_prices
+            reg_input=regression, data=model_prices
         )
         ra_res: RiskAttributionResult = ra.run()
 
         bra: analysis.BootstrapRiskAttributionAlt = (
             analysis.BootstrapRiskAttributionAlt(
-                dep=dep,
-                ind=ind,
+                reg_input=regression,
                 data=model_prices,
             )
         )
         bra_res: BootstrapRiskAttributionResult = bra.run()
 
-        res: Dict[String, Any] = {
+        res: Dict[str, Any] = {
             "core": ra_res,
             "rolling": rra_res,
             "bootstrap": bra_res,
@@ -167,7 +166,7 @@ def risk_attribution(
         )
 
 
-@regression_input_parse(has_window=False)  # type: ignore
+@regression_input(has_window=False)  # type: ignore
 @require_GET  # type: ignore
 def hypothetical_drawdown_simulation(
     request: HttpRequest, regression: RollingRegressionInput, coverage: List[Coverage]
@@ -175,10 +174,9 @@ def hypothetical_drawdown_simulation(
     """
     Parameters
     --------
-    ind : `List[int]`
-      List of independent variable asset ids for regression
-    dep : int
-      Asset id for dependent variable in regression
+    request: `HttpRequest`
+    regression: `RollingRegressionInput`
+    coverage: `List[Coverage]`
 
     Returns
     --------
@@ -193,16 +191,13 @@ def hypothetical_drawdown_simulation(
     503
       Couldn't connect to downstream API
     """
-    ind = regression["ind"]
-    dep = regression["dep"]
-
     req: prices.PriceAPIRequestsMonthly = prices.PriceAPIRequestsMonthly(coverage)
     model_prices: Dict[int, DataSource] = req.get()
 
     try:
         hde: analysis.HistoricalDrawdownEstimatorFromDataSources = (
             analysis.HistoricalDrawdownEstimatorFromDataSources(
-                ind=ind, dep=dep, model_prices=model_prices, threshold=-0.1
+                reg_input=regression, model_prices=model_prices, threshold=-0.1
             )
         )
         res: HistoricalDrawdownEstimatorResult = hde.get_results()
@@ -226,20 +221,21 @@ def hypothetical_drawdown_simulation(
 
 @require_GET  # type: ignore
 def price_coverage_suggest(request: HttpRequest) -> JsonResponse:
-    security_type: str = request.GET.get("security_type", None)
+    security_type = request.GET.get("security_type", None)
     if not security_type:
         return JsonResponse(
             {"status": "false", "message": "security_type is required parameter"},
             status=400,
         )
 
-    suggest_str: str = request.GET.get("s", None).lower()
+    suggest_str = request.GET.get("s", None)
     if not suggest_str:
         return JsonResponse(
             {"status": "false", "message": "s is required parameter"}, status=400
         )
+    suggest_str_lower = suggest_str.lower()
 
-    if len(suggest_str) < 2:
+    if len(suggest_str_lower) < 2:
         ##We return empty whenever string isn't long enough to return good results
         return JsonResponse({"coverage": []}, status=200)
 
@@ -248,7 +244,7 @@ def price_coverage_suggest(request: HttpRequest) -> JsonResponse:
             "coverage": list(
                 Coverage.objects.filter(
                     security_type=security_type,
-                    name__icontains=suggest_str,
+                    name__icontains=suggest_str_lower,
                 ).values()
             )
         },

@@ -1,12 +1,13 @@
-from typing import Any, Dict, List
-import os
-import requests
 from datetime import date
+from typing import Dict, List
+
+from django.db.models.query import QuerySet
 import investpy
 import pandas as pd
 
-from api.models import FactorReturns, Coverage
-from .data import InvestPySource, FactorSource, DataSource
+from api.models import Coverage, FactorReturns
+
+from .data import DataSource, FactorSource, InvestPySource
 
 
 class PriceAPIRequestMonthly:
@@ -67,7 +68,7 @@ class PriceAPIRequest:
 
 class PriceAPIRequestsMonthly:
     def get(self) -> Dict[int, DataSource]:
-        return {int(i.id): j.get() for i, j in zip(self.coverage, self.requests)}
+        return {int(i.id): j.get() for i, j in zip(self.coverage, self.requests)}  # type: ignore
 
     def __init__(self, coverage_objs: List[Coverage]):
         self.coverage: List[Coverage] = coverage_objs
@@ -78,27 +79,31 @@ class PriceAPIRequestsMonthly:
 
 class PriceAPIRequests:
     def get(self) -> Dict[int, DataSource]:
-        return {int(i.id): j.get() for i, j in zip(self.coverage, self.requests)}
+        return {int(i.id): j.get() for i, j in zip(self.coverage, self.requests)}  # type: ignore
 
-    def __init__(self, coverage_objs: List[Coverage]):
-        self.coverage: List[Coverage] = coverage_objs
-        self.requests: List[PriceAPIRequest] = [
-            PriceAPIRequest(i) for i in coverage_objs
+    def get_overlapping(self) -> Dict[int, DataSource]:
+        sources = [request.get() for request in self.requests]
+        dates = [set(source.get_dates()) for source in sources]
+        date_intersection = sorted(set.intersection(*dates))
+        filtered_sources = [
+            source.filter_dates(date_intersection) for source in sources
         ]
+        return {int(i.id): source for i, source in zip(self.coverage, filtered_sources)}  # type: ignore
+
+    def __init__(self, coverage_objs: QuerySet[Coverage]):
+        self.coverage = coverage_objs
+        self.requests = [PriceAPIRequest(i) for i in coverage_objs]
 
 
 class FactorAPI:
     @staticmethod
     def get_factor_price_history(name: str) -> pd.DataFrame:
         # Need to split off the factor
-        split: List[str] = name.split("-")
-        join_factor: str = "-".join(split[1:])
-        res: List[FactorReturns] = FactorReturns.objects.filter(
-            name=split[0], factor=join_factor
-        )
-        temp: List[Dict[Any, Any]] = [i.__dict__ for i in res]
-        df: pd.DataFrame = pd.DataFrame(temp)
-        return df
+        split = name.split("-")
+        join_factor = "-".join(split[1:])
+        res = FactorReturns.objects.filter(name=split[0], factor=join_factor)
+        temp = [i.__dict__ for i in res]
+        return pd.DataFrame(temp)
 
 
 class PriceAPI:

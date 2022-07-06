@@ -13,6 +13,17 @@ IndependentData = npt.NDArray[np.float64]
 RegressionData = Tuple[DependentData, IndependentData]
 
 
+class RegressionInput(TypedDict):
+    ind: List[int]
+    dep: int
+
+
+class RollingRegressionInput(TypedDict):
+    ind: List[int]
+    dep: int
+    window: int
+
+
 class WindowLengthError(Exception):
     def __init__(self) -> None:
         super().__init__()
@@ -125,18 +136,18 @@ class RiskAttributionDefinition:
             )(val)
             return data
 
-    def __init__(self, ind: List[int], dep: int, data: Dict[int, DataSource]):
-        self.ind: List[int] = [int(i) for i in ind]
-        self.dep: int = int(dep)
+    def __init__(self, reg_input: RegressionInput, data: Dict[int, DataSource]):
+        self.ind: List[int] = [int(i) for i in reg_input["ind"]]
+        self.dep: int = int(reg_input["dep"])
         self.data: Dict[int, DataSource] = data
         self.dates_union: List[int] = self._get_dates_union()
 
-        if not dep in data:
+        if not reg_input["dep"] in data:
             raise RiskAttributionUnusableInputException(
                 "Missing dependendent variable data"
             )
 
-        if not set(ind).issubset(data):
+        if not set(reg_input["ind"]).issubset(data):
             raise RiskAttributionUnusableInputException(
                 "Missing independent variable data"
             )
@@ -257,9 +268,9 @@ class RiskAttribution(RiskAttributionBase):
             max_date=max(dates),
         )
 
-    def __init__(self, ind: List[int], dep: int, data: Dict[int, DataSource]):
+    def __init__(self, reg_input: RegressionInput, data: Dict[int, DataSource]):
         definition: RiskAttributionDefinition = RiskAttributionDefinition(
-            ind, dep, data
+            reg_input, data
         )
         super().__init__(definition, data)
         self._build_data()
@@ -312,14 +323,17 @@ class RollingRiskAttribution(RiskAttributionBase):
         )
 
     def __init__(
-        self, ind: List[int], dep: int, data: Dict[int, DataSource], window_length: int
+        self,
+        roll_input: RollingRegressionInput,
+        data: Dict[int, DataSource],
     ):
 
+        reg_input = RegressionInput(ind=roll_input["ind"], dep=roll_input["dep"])
         definition: RiskAttributionDefinition = RiskAttributionDefinition(
-            ind, dep, data
+            reg_input, data
         )
         super().__init__(definition, data)
-        self.window_length: int = window_length
+        self.window_length: int = roll_input["window"]
 
 
 class BootstrapResult(TypedDict):
@@ -367,9 +381,9 @@ class BootstrapRiskAttributionAlt:
             intercept=intercept_result, coefficients=coefs_result
         )
 
-    def __init__(self, ind: List[int], dep: int, data: Dict[int, DataSource]):
+    def __init__(self, reg_input: RegressionInput, data: Dict[int, DataSource]):
         self.definition: RiskAttributionDefinition = RiskAttributionDefinition(
-            ind, dep, data
+            reg_input, data
         )
 
 
@@ -452,19 +466,20 @@ class BootstrapRiskAttribution(RiskAttributionBase):
 
     def run(self) -> BootstrapRiskAttributionResult:
         rra: RollingRiskAttribution = RollingRiskAttribution(
-            ind=self.definition.ind,
-            dep=self.definition.dep,
+            roll_input=RollingRegressionInput(
+                ind=self.definition.ind,
+                dep=self.definition.dep,
+                window=self.window_length,
+            ),
             data=self.data,
-            window_length=self.window_length,
         )
         rolling_results: RollingRiskAttributionResult = rra.run()
         return self._build_bootstrap(rolling_results)
 
-    def __init__(
-        self, ind: List[int], dep: int, data: Dict[int, DataSource], window_length: int
-    ):
+    def __init__(self, roll_input: RollingRegressionInput, data: Dict[int, DataSource]):
+        reg_input = RegressionInput(ind=roll_input["ind"], dep=roll_input["dep"])
         definition: RiskAttributionDefinition = RiskAttributionDefinition(
-            ind, dep, data
+            reg_input, data
         )
         super().__init__(definition, data)
-        self.window_length: int = window_length
+        self.window_length: int = roll_input["window"]

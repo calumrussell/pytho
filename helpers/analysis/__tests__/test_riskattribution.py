@@ -12,6 +12,8 @@ from ..riskattribution import (
     BootstrapRiskAttribution,
     WindowLengthError,
     RiskAttributionUnusableInputException,
+    RollingRegressionInput,
+    RegressionInput,
 )
 
 
@@ -28,7 +30,9 @@ class TestBootstrapRiskAttributionAlt(SimpleTestCase):
         return
 
     def test_that_bootstrap_loads(self):
-        ra = BootstrapRiskAttributionAlt(dep=0, ind=[1], data=self.data)
+        ra = BootstrapRiskAttributionAlt(
+            RegressionInput(dep=0, ind=[1]), data=self.data
+        )
         res = ra.run()
         return
 
@@ -40,10 +44,12 @@ class TestBootstrapRiskAttribution(SimpleTestCase):
 
     def test_that_bootstrap_loads(self):
         ra = BootstrapRiskAttribution(
-            dep=0,
-            ind=[1],
+            RollingRegressionInput(
+                dep=0,
+                ind=[1],
+                window=5,
+            ),
             data=self.data,
-            window_length=5,
         )
         res = ra.run()
         return
@@ -56,10 +62,12 @@ class TestRollingRiskAttribution(SimpleTestCase):
 
     def test_that_rolling_risk_attribution_loads(self):
         ra = RollingRiskAttribution(
-            dep=0,
-            ind=[1],
+            RollingRegressionInput(
+                dep=0,
+                ind=[1],
+                window=5,
+            ),
             data=self.data,
-            window_length=5,
         )
         res = ra.run()
         return
@@ -67,10 +75,12 @@ class TestRollingRiskAttribution(SimpleTestCase):
     def test_that_error_is_thrown_with_window_longer_than_data(self):
         with self.assertRaises(WindowLengthError) as context:
             ra = RollingRiskAttribution(
-                dep=0,
-                ind=[1],
+                RollingRegressionInput(
+                    dep=0,
+                    ind=[1],
+                    window=99999999,
+                ),
                 data=self.data,
-                window_length=99999999,
             )
             res = ra.run()
         return
@@ -78,10 +88,12 @@ class TestRollingRiskAttribution(SimpleTestCase):
     def test_that_dates_is_same_length_as_data_and_valid(self):
         last = self.data[0].get_dates()[-1]
         ra = RollingRiskAttribution(
-            dep=0,
-            ind=[1],
+            RollingRegressionInput(
+                dep=0,
+                ind=[1],
+                window=5,
+            ),
             data=self.data,
-            window_length=5,
         )
         res = ra.run()
         self.assertTrue(len(res["dates"]) == len(res["regressions"]))
@@ -91,10 +103,12 @@ class TestRollingRiskAttribution(SimpleTestCase):
     def test_that_rolling_riskattribution_works_with_factor_source(self):
         self.data[3] = FakeData.get_factor(1, 0.1, 100)
         ra = RollingRiskAttribution(
-            dep=0,
-            ind=[3],
+            RollingRegressionInput(
+                dep=0,
+                ind=[3],
+                window=5,
+            ),
             data=self.data,
-            window_length=5,
         )
         res = ra.run()
         return
@@ -107,8 +121,10 @@ class TestRiskAttribution(SimpleTestCase):
 
     def test_that_risk_attribution_loads(self):
         ra = RiskAttribution(
-            dep=0,
-            ind=[1],
+            RegressionInput(
+                dep=0,
+                ind=[1],
+            ),
             data=self.data,
         )
         res = ra.run()
@@ -136,24 +152,34 @@ class TestRiskAttributionBase(SimpleTestCase):
         df = pd.DataFrame({"Close": [1, 2], "Open": [1, 2]}, index=idx)
         df1 = pd.DataFrame({"Close": [1, 2], "Open": [1, 2]}, index=idx1)
         data = {0: InvestPySource(df), 1: InvestPySource(df1)}
+        reg_input = RegressionInput(
+            dep=0,
+            ind=[1],
+        )
         self.assertRaises(
-            RiskAttributionUnusableInputException, RiskAttribution, [1], 0, data
+            RiskAttributionUnusableInputException, RiskAttribution, reg_input, data
         )
         return
 
     def test_that_error_thrown_with_invalid_inputs(self):
+        reg_input = RegressionInput(
+            dep=0,
+            ind=[10],
+        )
+
         self.assertRaises(
             RiskAttributionUnusableInputException,
             RiskAttribution,
-            [10],
-            0,
+            reg_input,
             self.data,
         )
 
     def test_that_get_windows_produces_valid_number_of_windows(self):
         ra = RiskAttribution(
-            dep=0,
-            ind=[1],
+            RegressionInput(
+                dep=0,
+                ind=[1],
+            ),
             data=self.data,
         )
         count = 0

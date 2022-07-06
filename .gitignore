@@ -1,7 +1,7 @@
 *.sqlite3
-js/dist
+js/dist/
 js/package-lock.json
-js/node_modules
+js/node_modules/
 js/yarn.lock
 __pycache__/
 .env
@@ -22,3 +22,5 @@ helpers/rust/Cargo.lock
 venv
 node_modules/.yarn-integrity
 yarn.lock
+mypy.ini
+typings/
