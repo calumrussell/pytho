@@ -40,6 +40,10 @@ export const useAntevorta = () => {
     state, dispatch,
   } = context;
 
+  const {
+    errorMessage
+  } = useMessage();
+
   const simComplete = (results) => dispatch({
     type: 'SIM_END',
     results,
@@ -61,6 +65,11 @@ export const useAntevorta = () => {
     axios.post(process.env.API_URL + `/api/incomesim`, simInput)
       .then((res) => res.data)
       .then((res) => simComplete(res.data))
+      .catch((err) => {
+          if (err.response) {
+            errorMessage(err.response.data.message);
+          }
+        })
       .finally(finallyFunc);
   };
 
