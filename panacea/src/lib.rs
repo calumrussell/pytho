@@ -1,5 +1,6 @@
 pub mod calcs;
 pub mod sim;
+pub mod stat;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
