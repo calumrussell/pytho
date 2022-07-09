@@ -7,7 +7,7 @@ import {
   PageWrapper,
 } from '@Style';
 import {
-  PortfolioProvider
+  PortfolioProvider,
 } from '@Components/portfolio';
 
 import {
@@ -22,7 +22,8 @@ import {
 
 
 export const AntevortaApp = (props) => (
-  <PageWrapper id="antevorta-main">
+  <PageWrapper
+    id="antevorta-main">
     <AntevortaProvider>
       <PortfolioProvider>
         <LoaderProvider>
@@ -32,4 +33,4 @@ export const AntevortaApp = (props) => (
       </PortfolioProvider>
     </AntevortaProvider>
   </PageWrapper>
-)
+);

@@ -63,7 +63,7 @@ export const SideMenu = ({
             <li>
               <Link
                 to='/incomesim'>
-                Income Simulation 
+                Income Simulation
               </Link>
             </li>
           </ul>

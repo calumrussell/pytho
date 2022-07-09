@@ -6,9 +6,6 @@ import {
 import {
   LoaderProvider,
 } from '@Components/reducers/loader';
-import {
-  PageWrapper,
-} from '@Style';
 
 import {
   ModelResults,
@@ -18,7 +15,8 @@ import {
 } from './builder';
 
 export const AthenaApp = (props) => (
-  <ModelProvider id="riskattribution-main">
+  <ModelProvider
+    id="riskattribution-main">
     <LoaderProvider>
       <Builder />
       <ModelResults />

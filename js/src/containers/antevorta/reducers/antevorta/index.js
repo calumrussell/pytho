@@ -6,7 +6,7 @@ import {
 } from '@Components/reducers/message';
 
 const initialState = {
-  results: undefined, 
+  results: undefined,
 };
 
 const actionTypes = {
@@ -18,13 +18,13 @@ const reducer = (state, action) => {
   switch (action.type) {
     case actionTypes.simComplete: {
       return {
-        results: action.results
-      }
+        results: action.results,
+      };
     }
     case actionTypes.simClear: {
       return {
-        results: undefined
-      }
+        results: undefined,
+      };
     }
     default: {
       new Error('Unknown action type');
@@ -41,7 +41,7 @@ export const useAntevorta = () => {
   } = context;
 
   const {
-    errorMessage
+    errorMessage,
   } = useMessage();
 
   const simComplete = (results) => dispatch({
@@ -53,24 +53,24 @@ export const useAntevorta = () => {
   });
 
   const simInputBuilder = (portfolio, initialCash, wage, wageGrowth) => ({
-    "data": {
-      "initial_cash": Number(initialCash),
-      "wage": Number(wage),
-      "wage_growth": wageGrowth / 100.0,
-      ...portfolio.portfolio.toPost()
-    }
+    'data': {
+      'initial_cash': Number(initialCash),
+      'wage': Number(wage),
+      'wage_growth': wageGrowth / 100.0,
+      ...portfolio.portfolio.toPost(),
+    },
   });
 
   const runSim = (simInput, finallyFunc) => {
     axios.post(process.env.API_URL + `/api/incomesim`, simInput)
-      .then((res) => res.data)
-      .then((res) => simComplete(res.data))
-      .catch((err) => {
+        .then((res) => res.data)
+        .then((res) => simComplete(res.data))
+        .catch((err) => {
           if (err.response) {
             errorMessage(err.response.data.message);
           }
         })
-      .finally(finallyFunc);
+        .finally(finallyFunc);
   };
 
   return {

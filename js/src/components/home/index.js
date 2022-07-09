@@ -84,7 +84,7 @@ export const Home = (props) => {
             <PageOpener>
               <Text
                 focus>
-                  Income Simulation
+                Income Simulation
               </Text>
               <Text
                 italic
