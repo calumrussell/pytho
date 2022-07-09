@@ -24,7 +24,7 @@ export const weightedPortfolio = () => {
   const toPost = () => ({
     'assets': assets.map((i) => parseInt(i.id)),
     'weights': weights.map((i) => parseInt(i)/100),
-  })
+  });
 
   const getPortfolio = () => ({
     assets,

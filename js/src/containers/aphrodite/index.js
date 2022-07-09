@@ -13,7 +13,7 @@ import {
   PortfolioLoader,
 } from '@Components/portfolio';
 import {
-  PageWrapper, SectionWrapper, ComponentWrapper,
+  SectionWrapper, ComponentWrapper,
 } from '@Style';
 
 import {
@@ -22,8 +22,9 @@ import {
 
 const Aphrodite = (props) => {
   return (
-    <React.Fragment>
-      <SectionWrapper data-testid="app">
+    <>
+      <SectionWrapper
+        data-testid="app">
         <ComponentWrapper>
           <PortfolioBuilder />
           <PortfolioDisplay />
@@ -33,7 +34,7 @@ const Aphrodite = (props) => {
       <SectionWrapper>
         <Results />
       </SectionWrapper>
-    </React.Fragment>
+    </>
   );
 };
 

@@ -1,36 +1,58 @@
-import React from "react"
+import React from 'react';
+import styled from 'styled-components';
 
-import { ComponentWrapper, SectionWrapper, Title, Text } from '@Style';
-import { useAntevorta } from '../../reducers/antevorta';
+import {
+  ComponentWrapper, SectionWrapper,
+} from '@Style';
+import {
+  useAntevorta,
+} from '../../reducers/antevorta';
+import {
+  NumberWithTitle,
+} from '@Components/common';
+import {
+  strConverter,
+} from '@Helpers';
 
-export const ModelResults = props => {
+const RowWrapper = styled.div`
+  display: flex;
+  justify-content: space-around;
+  margin: 1rem 0;
+`;
 
+export const ModelResults = (props) => {
   const {
-    state
+    state,
   } = useAntevorta();
 
   if (state.results) {
-    const  {
+    const {
       cash,
       isa,
       gia,
-      sipp
+      sipp,
     } = state.results;
     return (
       <SectionWrapper>
         <ComponentWrapper>
-          <Title>Cash</Title>
-          <Text>{cash}</Text>
-          <Title>ISA</Title>
-          <Text>{isa}</Text>
-          <Title>GIA</Title>
-          <Text>{gia}</Text>
-          <Title>SIPP</Title>
-          <Text>{sipp}</Text>
+          <RowWrapper>
+            <NumberWithTitle
+              title={ 'Cash' }
+              number={ strConverter(cash) } />
+            <NumberWithTitle
+              title={ 'ISA' }
+              number={ strConverter(isa) } />
+            <NumberWithTitle
+              title={ 'GIA' }
+              number={ strConverter(gia) } />
+            <NumberWithTitle
+              title={ 'SIPP' }
+              number={ strConverter(sipp) } />
+          </RowWrapper>
         </ComponentWrapper>
       </SectionWrapper>
-    )
+    );
   } else {
     return null;
   }
-}
+};

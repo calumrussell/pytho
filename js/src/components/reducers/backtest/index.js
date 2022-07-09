@@ -55,7 +55,7 @@ export const useBacktest = () => {
 
     const port = portObj.toPost();
     const backtestInput = {
-      'data': port
+      'data': port,
     };
     const backtestUrl = `/api/backtest`;
     return axios.post(process.env.API_URL + backtestUrl, backtestInput)
