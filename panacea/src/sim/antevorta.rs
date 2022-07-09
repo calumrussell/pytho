@@ -2,7 +2,7 @@ use alator::broker::{BrokerCost, Dividend, Quote};
 use alator::data::{DataSource, DateTime, PortfolioAllocation};
 use alator::sim::broker::SimulatedBroker;
 use alator::sim::portfolio::SimPortfolio;
-use antevorta::country::uk::{UKIncome, UKSimulationBuilder, UKSimulationResult, NIC};
+use antevorta::country::uk::{UKIncome, UKSimulationBuilder, UKSimulationBuilderConfig, UKSimulationResult, NIC};
 use antevorta::schedule::Schedule;
 use antevorta::sim::Simulation;
 use antevorta::strat::StaticInvestmentStrategy;
@@ -19,6 +19,8 @@ pub struct AntevortaBasicInput {
     pub initial_cash: f64,
     pub wage: f64,
     pub wage_growth: f64,
+    pub contribution_pct: f64,
+    pub emergency_cash_min: f64,
 }
 
 #[pymethods]
@@ -32,6 +34,8 @@ impl AntevortaBasicInput {
         initial_cash: f64,
         wage: f64,
         wage_growth: f64,
+        contribution_pct: f64,
+        emergency_cash_min: f64,
     ) -> Self {
         AntevortaBasicInput {
             assets,
@@ -41,6 +45,8 @@ impl AntevortaBasicInput {
             initial_cash,
             wage,
             wage_growth,
+            contribution_pct,
+            emergency_cash_min,
         }
     }
 }
@@ -88,13 +94,22 @@ pub fn antevorta_basic(input: &AntevortaBasicInput) -> PyResult<PySimResults> {
         )
     }
 
-    let brokercosts = vec![BrokerCost::PctOfValue(0.005)];
+    let brokercosts = vec![BrokerCost::Flat(0.01.into())];
     let simbrkr = SimulatedBroker::new(source, brokercosts);
     let port = SimPortfolio::new(simbrkr);
     let ia = StaticInvestmentStrategy::new(Schedule::EveryFriday, weights);
 
     let growth: f64 = (1.0 + input.wage_growth).powf(1.0 / 12.0) - 1.0;
-    let mut state_builder = UKSimulationBuilder::new(input.initial_cash.into(), 0.0.into(), NIC::A, ia, port);
+    let config = UKSimulationBuilderConfig {
+        start_cash: input.initial_cash.into(),
+        lifetime_pension_contributions: 0.0.into(),
+        contribution_pct: input.contribution_pct,
+        emergency_cash_min: input.emergency_cash_min.into(),
+        nic: NIC::A,
+        portfolio: port,
+        strat: ia,
+    };
+    let mut state_builder = UKSimulationBuilder::new(config);
     let employment = UKIncome::Employment(input.wage.into(), Schedule::EveryMonth(25))
         .with_fixedrate_growth(&start_date.into(), &(sim_len as i64), &growth);
     state_builder.add_incomes(employment);
@@ -160,6 +175,8 @@ mod tests {
                     initial_cash: 100_000.0,
                     wage: 4_000.0,
                     wage_growth: 0.02,
+                    contribution_pct: 0.05,
+                    emergency_cash_min: 5_000.0,
                 },
             )
             .unwrap()
