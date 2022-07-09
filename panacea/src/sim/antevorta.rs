@@ -18,7 +18,6 @@ pub struct AntevortaBasicInput {
     pub close: HashMap<String, Vec<f64>>,
     pub initial_cash: f64,
     pub wage: f64,
-    //TODO: especially bad name, needs to change
     pub wage_growth: f64,
 }
 
