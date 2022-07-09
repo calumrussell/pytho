@@ -15,8 +15,8 @@ dependencies = [
 
 [[package]]
 name = "antevorta"
-version = "0.0.3"
-source = "git+http://100.108.118.115:14400/calum/antevorta.git?tag=v0.0.3#d4d8380c833bda44f3be3166da15db9d0c61ef53"
+version = "0.0.4"
+source = "git+http://100.108.118.115:14400/calum/antevorta.git?tag=v0.0.4#1608e61eae94387419009fce369770dfc585979f"
 dependencies = [
  "alator",
  "rand",
