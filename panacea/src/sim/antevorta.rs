@@ -9,13 +9,17 @@ use antevorta::country::uk::{
 use antevorta::schedule::Schedule;
 use antevorta::sim::Simulation;
 use antevorta::strat::StaticInvestmentStrategy;
-use crate::stat::build_sample; 
-use pyo3::prelude::*;
-use std::collections::HashMap;
 use pyo3::create_exception;
 use pyo3::exceptions::PyException;
+use pyo3::prelude::*;
+use std::collections::HashMap;
 
-create_exception!(panacea, InsufficientDataError, PyException, "Insufficient data to resample.");
+create_exception!(
+    panacea,
+    InsufficientDataError,
+    PyException,
+    "Insufficient data to resample."
+);
 
 #[pyclass]
 #[derive(Clone, Debug)]
