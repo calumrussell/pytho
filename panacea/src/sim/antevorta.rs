@@ -2,7 +2,9 @@ use alator::broker::{BrokerCost, Dividend, Quote};
 use alator::data::{DataSource, DateTime, PortfolioAllocation};
 use alator::sim::broker::SimulatedBroker;
 use alator::sim::portfolio::SimPortfolio;
-use antevorta::country::uk::{UKIncome, UKSimulationBuilder, UKSimulationBuilderConfig, UKSimulationResult, NIC};
+use antevorta::country::uk::{
+    UKIncome, UKSimulationBuilder, UKSimulationBuilderConfig, UKSimulationResult, NIC,
+};
 use antevorta::schedule::Schedule;
 use antevorta::sim::Simulation;
 use antevorta::strat::StaticInvestmentStrategy;

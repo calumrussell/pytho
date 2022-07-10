@@ -54,10 +54,10 @@ pub fn build_sample(
 mod tests {
     use alator::broker::Quote;
     use alator::data::DateTime;
-    use std::collections::HashMap;
     use rand::distributions::Uniform;
     use rand::thread_rng;
     use rand_distr::Distribution;
+    use std::collections::HashMap;
 
     use super::build_sample;
 
