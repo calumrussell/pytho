@@ -10,7 +10,7 @@ pub fn build_sample(
     start_date: i64,
     sim_length_yrs: i64,
     raw_data: HashMap<DateTime, Vec<Quote>>,
-    dates: Vec<i64>,
+    dates: &Vec<i64>,
 ) -> Option<HashMap<DateTime, Vec<Quote>>> {
     //Check that data is long enough for resampling
     let data_length = dates.len() as i64;
@@ -62,7 +62,7 @@ mod tests {
     use super::build_sample;
 
     #[test]
-    fn test_random_sample_generator() {
+    fn test_sample_generator() {
         let price_dist = Uniform::new(98.0, 102.0);
         let mut rng = thread_rng();
 
@@ -79,8 +79,30 @@ mod tests {
             raw_data.insert(date.into(), vec![quote]);
             fake_dates.push(date);
         }
-        let res = build_sample(1, 10, raw_data, fake_dates);
+        let res = build_sample(1, 10, raw_data, &fake_dates);
         let new_sample_len = res.unwrap().keys().len();
         assert!(new_sample_len == 3650);
+    }
+
+    #[test]
+    fn test_sample_generator_with_insufficient_data() {
+        let price_dist = Uniform::new(98.0, 102.0);
+        let mut rng = thread_rng();
+
+        let mut raw_data: HashMap<DateTime, Vec<Quote>> = HashMap::new();
+        let mut fake_dates: Vec<i64> = Vec::new();
+        for date in 1..10 {
+            let price = price_dist.sample(&mut rng);
+            let quote = Quote {
+                bid: price.into(),
+                ask: price.into(),
+                date: date.into(),
+                symbol: "ABC".to_string(),
+            };
+            raw_data.insert(date.into(), vec![quote]);
+            fake_dates.push(date);
+        }
+        let res = build_sample(1, 10, raw_data, &fake_dates);
+        assert!(res.is_none() == true);
     }
 }
