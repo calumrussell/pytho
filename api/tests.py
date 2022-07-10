@@ -243,7 +243,6 @@ class TestIncomeSimulation(TestCase):
                 "contribution_pct": 0.05,
                 "emergency_cash_min": 5000,
                 "sim_length": 10,
-
             }
         }
         response = self.c.post("/api/incomesim", req, content_type="application/json")
@@ -351,7 +350,7 @@ class TestIncomeSimulation(TestCase):
                 "contribution_pct": 0.05,
                 "emergency_cash_min": 5000,
                 "sim_length": 10,
-           }
+            }
         }
         req6 = {
             "data": {
@@ -363,7 +362,7 @@ class TestIncomeSimulation(TestCase):
                 "contribution_pct": -1,
                 "emergency_cash_min": 5000,
                 "sim_length": 10,
-           }
+            }
         }
         req7 = {
             "data": {
@@ -375,7 +374,7 @@ class TestIncomeSimulation(TestCase):
                 "contribution_pct": 0.05,
                 "emergency_cash_min": -1,
                 "sim_length": 10,
-           }
+            }
         }
         req8 = {
             "data": {
@@ -387,7 +386,7 @@ class TestIncomeSimulation(TestCase):
                 "contribution_pct": 0.05,
                 "emergency_cash_min": 5,
                 "sim_length": -1,
-           }
+            }
         }
 
         response = self.c.post("/api/incomesim", req, content_type="application/json")
@@ -410,7 +409,6 @@ class TestIncomeSimulation(TestCase):
         self.assertTrue(response7.status_code == 400)
         self.assertTrue(response8.status_code == 400)
 
-
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_simulation_throws_error_with_failed_data_fetch(self, mock_obj):
         instance = mock_obj.return_value
@@ -432,7 +430,6 @@ class TestIncomeSimulation(TestCase):
         response = self.c.post("/api/incomesim", req, content_type="application/json")
         self.assertTrue(response.status_code == 404)
 
-
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_simulation_fails_with_insufficient_data(self, mock_obj):
         instance = mock_obj.return_value
@@ -448,13 +445,10 @@ class TestIncomeSimulation(TestCase):
                 "contribution_pct": 0.05,
                 "emergency_cash_min": 5000,
                 "sim_length": 10,
-
             }
         }
         response = self.c.post("/api/incomesim", req, content_type="application/json")
         self.assertTrue(response.status_code == 404)
-
-
 
 
 class TestBacktestPortfolio(TestCase):
