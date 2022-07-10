@@ -11,6 +11,10 @@ use antevorta::strat::StaticInvestmentStrategy;
 use crate::stat::build_sample; 
 use pyo3::prelude::*;
 use std::collections::HashMap;
+use pyo3::create_exception;
+use pyo3::exceptions::PyException;
+
+create_exception!(panacea, InsufficientDataError, PyException, "Insufficient data to resample.");
 
 #[pyclass]
 #[derive(Clone, Debug)]
@@ -92,10 +96,8 @@ pub fn antevorta_basic(input: &AntevortaBasicInput) -> PyResult<PySimResults> {
     let raw_dividends: HashMap<DateTime, Vec<Dividend>> = HashMap::new();
     let resampled_raw_data = build_sample(start_date, input.sim_length, raw_data, &input.dates);
     if resampled_raw_data.is_none() {
-        panic!("Not enough data to build a full sample");
+        return Err(InsufficientDataError::new_err("Insufficient data"));
     }
-    let num = resampled_raw_data.as_ref().unwrap().keys().len();
-    println!("{:?}", num);
     let source = DataSource::from_hashmap(resampled_raw_data.unwrap(), raw_dividends);
 
     let mut weights = PortfolioAllocation::new();
@@ -196,7 +198,6 @@ mod tests {
             .borrow();
             let res = antevorta_basic(&obj);
             println!("{:?}", res.unwrap());
-            assert!(true == false);
             Ok(())
         });
     }
