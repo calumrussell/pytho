@@ -155,39 +155,46 @@ mod tests {
 
     use pyo3::prelude::*;
     use rand::distributions::Uniform;
-    use rand::{thread_rng, Rng};
-    use rand_distr::{Distribution, Normal};
+    use rand::thread_rng;
+    use rand_distr::Distribution;
 
     use super::{antevorta_basic, AntevortaBasicInput};
 
-    #[test]
-    fn run_income() {
-        //Weights is {symbol: weight}
-        //Data is {asset_id[i64]: {Open/Close[str]: {date[i64], price[f64]}}}
-        let price_dist = Uniform::new(1.0, 100.0);
-        let vol_dist = Uniform::new(0.1, 0.2);
+    fn setup() -> (
+        HashMap<String, Vec<f64>>,
+        Vec<i64>,
+        Vec<String>,
+        HashMap<String, f64>,
+    ) {
+        let price_dist = Uniform::new(80.0, 120.0);
         let mut rng = thread_rng();
-        let price = rng.sample(price_dist);
-        let vol = rng.sample(vol_dist);
-        let ret_dist = Normal::new(0.0, vol).unwrap();
 
         let assets = vec![0.to_string(), 1.to_string()];
-        let dates: Vec<i64> = (0..500).collect();
+        let dates: Vec<i64> = (0..400).collect();
         let mut close: HashMap<String, Vec<f64>> = HashMap::new();
         for asset in &assets {
             let mut close_data: Vec<f64> = Vec::new();
             for _date in &dates {
-                let period_ret = ret_dist.sample(&mut rng);
-                let new_price = price * (1.0 + period_ret);
-                close_data.push(new_price);
+                close_data.push(price_dist.sample(&mut rng));
             }
             close.insert(asset.clone(), close_data);
         }
-
         let mut weights: HashMap<String, f64> = HashMap::new();
         weights.insert(String::from("0"), 0.5);
         weights.insert(String::from("1"), 0.5);
 
+        (close, dates, assets, weights)
+    }
+
+    #[test]
+    fn run_income_simulation() {
+        //Weights is {symbol: weight}
+        //Data is {asset_id[i64]: {Open/Close[str]: {date[i64], price[f64]}}}
+        let res = setup();
+        let close = res.0;
+        let dates = res.1;
+        let assets = res.2;
+        let weights = res.3;
         pyo3::prepare_freethreaded_python();
         Python::with_gil(|py| -> PyResult<()> {
             let obj = PyCell::new(
@@ -209,6 +216,62 @@ mod tests {
             .borrow();
             let res = antevorta_basic(&obj);
             println!("{:?}", res.unwrap());
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn test_that_sim_length_changes_results() {
+        //Weights is {symbol: weight}
+        //Data is {asset_id[i64]: {Open/Close[str]: {date[i64], price[f64]}}}
+        let res = setup();
+        let close = res.0;
+        let dates = res.1;
+        let assets = res.2;
+        let weights = res.3;
+
+        pyo3::prepare_freethreaded_python();
+        Python::with_gil(|py| -> PyResult<()> {
+            let obj = PyCell::new(
+                py,
+                AntevortaBasicInput {
+                    dates: dates.clone(),
+                    assets: assets.clone(),
+                    close: close.clone(),
+                    weights: weights.clone(),
+                    initial_cash: 100_000.0,
+                    wage: 4_000.0,
+                    wage_growth: 0.02,
+                    contribution_pct: 0.10,
+                    emergency_cash_min: 5_000.0,
+                    sim_length: 20,
+                },
+            )
+            .unwrap()
+            .borrow();
+            let res = antevorta_basic(&obj)?;
+
+            let obj1 = PyCell::new(
+                py,
+                AntevortaBasicInput {
+                    dates,
+                    assets,
+                    close,
+                    weights,
+                    initial_cash: 100_000.0,
+                    wage: 4_000.0,
+                    wage_growth: 0.02,
+                    contribution_pct: 0.10,
+                    emergency_cash_min: 5_000.0,
+                    sim_length: 30,
+                },
+            )
+            .unwrap()
+            .borrow();
+            let res1 = antevorta_basic(&obj1)?;
+
+            //Position one should be a non-cash value
+            assert!(res.1 != res1.1);
             Ok(())
         });
     }
