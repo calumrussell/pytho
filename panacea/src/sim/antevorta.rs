@@ -1,3 +1,4 @@
+use crate::stat::build_sample_raw_daily;
 use alator::broker::{BrokerCost, Dividend, Quote};
 use alator::data::{DataSource, DateTime, PortfolioAllocation};
 use alator::sim::broker::SimulatedBroker;
@@ -75,30 +76,36 @@ fn convert_sim_results(res: UKSimulationResult) -> PySimResults {
 #[pyfunction]
 pub fn antevorta_basic(input: &AntevortaBasicInput) -> PyResult<PySimResults> {
     let start_date = input.dates.first().unwrap().clone();
-    let sim_len = input.dates.len();
 
     let mut raw_data: HashMap<DateTime, Vec<Quote>> = HashMap::new();
-    for pos in 0..sim_len {
-        let curr_date: DateTime = input.dates[pos].into();
-        let mut quotes: Vec<Quote> = Vec::new();
-        for asset in &input.assets {
-            let close = input.close.get(asset).unwrap();
-            let q = Quote {
-                date: curr_date,
-                bid: close[pos].into(),
-                ask: close[pos].into(),
-                symbol: asset.clone(),
-            };
-            quotes.push(q);
+    if let Some(resampled_close) = build_sample_raw_daily(input.sim_length, input.close.clone()) {
+        let sim_length_days = input.sim_length * 365;
+        let mut iter_date = input.dates.first().unwrap().clone();
+        //The simulator builds its own dates to use an input
+        //This will iterate over the prices within the resampled_close, therefore the vectors have to
+        //be equal to sim_length_days
+        for pos in 0..sim_length_days {
+            let mut quotes: Vec<Quote> = Vec::new();
+            for asset in &input.assets {
+                let asset_closes = resampled_close.get(asset).unwrap();
+                let pos_close = asset_closes[pos as usize];
+                let q = Quote {
+                    date: iter_date.into(),
+                    bid: pos_close.into(),
+                    ask: pos_close.into(),
+                    symbol: asset.clone(),
+                };
+                quotes.push(q);
+            }
+            raw_data.insert(iter_date.into(), quotes);
+            //Add one day in seconds
+            iter_date += 84600;
         }
-        raw_data.insert(curr_date, quotes);
-    }
-    let raw_dividends: HashMap<DateTime, Vec<Dividend>> = HashMap::new();
-    let resampled_raw_data = build_sample(start_date, input.sim_length, raw_data, &input.dates);
-    if resampled_raw_data.is_none() {
+    } else {
         return Err(InsufficientDataError::new_err("Insufficient data"));
     }
-    let source = DataSource::from_hashmap(resampled_raw_data.unwrap(), raw_dividends);
+    let raw_dividends: HashMap<DateTime, Vec<Dividend>> = HashMap::new();
+    let source = DataSource::from_hashmap(raw_data, raw_dividends);
 
     let mut weights = PortfolioAllocation::new();
     for symbol in input.weights.keys() {
