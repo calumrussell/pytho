@@ -8,6 +8,7 @@ use antevorta::country::uk::{
 use antevorta::schedule::Schedule;
 use antevorta::sim::Simulation;
 use antevorta::strat::StaticInvestmentStrategy;
+use crate::stat::build_sample; 
 use pyo3::prelude::*;
 use std::collections::HashMap;
 
@@ -23,6 +24,7 @@ pub struct AntevortaBasicInput {
     pub wage_growth: f64,
     pub contribution_pct: f64,
     pub emergency_cash_min: f64,
+    pub sim_length: i64,
 }
 
 #[pymethods]
@@ -38,6 +40,7 @@ impl AntevortaBasicInput {
         wage_growth: f64,
         contribution_pct: f64,
         emergency_cash_min: f64,
+        sim_length: i64,
     ) -> Self {
         AntevortaBasicInput {
             assets,
@@ -49,6 +52,7 @@ impl AntevortaBasicInput {
             wage_growth,
             contribution_pct,
             emergency_cash_min,
+            sim_length,
         }
     }
 }
@@ -86,7 +90,13 @@ pub fn antevorta_basic(input: &AntevortaBasicInput) -> PyResult<PySimResults> {
         raw_data.insert(curr_date, quotes);
     }
     let raw_dividends: HashMap<DateTime, Vec<Dividend>> = HashMap::new();
-    let source = DataSource::from_hashmap(raw_data, raw_dividends);
+    let resampled_raw_data = build_sample(start_date, input.sim_length, raw_data, &input.dates);
+    if resampled_raw_data.is_none() {
+        panic!("Not enough data to build a full sample");
+    }
+    let num = resampled_raw_data.as_ref().unwrap().keys().len();
+    println!("{:?}", num);
+    let source = DataSource::from_hashmap(resampled_raw_data.unwrap(), raw_dividends);
 
     let mut weights = PortfolioAllocation::new();
     for symbol in input.weights.keys() {
@@ -113,13 +123,13 @@ pub fn antevorta_basic(input: &AntevortaBasicInput) -> PyResult<PySimResults> {
     };
     let mut state_builder = UKSimulationBuilder::new(config);
     let employment = UKIncome::Employment(input.wage.into(), Schedule::EveryMonth(25))
-        .with_fixedrate_growth(&start_date.into(), &(sim_len as i64), &growth);
+        .with_fixedrate_growth(&start_date.into(), &(input.sim_length * 365), &growth);
     state_builder.add_incomes(employment);
     let mut state = state_builder.build();
 
     let mut sim = Simulation {
         start_date: start_date.into(),
-        length: sim_len as i64,
+        length: input.sim_length * 365,
     };
     let result = sim.run(&mut state);
     Ok(convert_sim_results(result.get_perf()))
@@ -149,7 +159,7 @@ mod tests {
         let ret_dist = Normal::new(0.0, vol).unwrap();
 
         let assets = vec![0.to_string(), 1.to_string()];
-        let dates: Vec<i64> = (0..100).collect();
+        let dates: Vec<i64> = (0..500).collect();
         let mut close: HashMap<String, Vec<f64>> = HashMap::new();
         for asset in &assets {
             let mut close_data: Vec<f64> = Vec::new();
@@ -177,14 +187,16 @@ mod tests {
                     initial_cash: 100_000.0,
                     wage: 4_000.0,
                     wage_growth: 0.02,
-                    contribution_pct: 0.05,
+                    contribution_pct: 0.10,
                     emergency_cash_min: 5_000.0,
+                    sim_length: 20,
                 },
             )
             .unwrap()
             .borrow();
             let res = antevorta_basic(&obj);
             println!("{:?}", res.unwrap());
+            assert!(true == false);
             Ok(())
         });
     }
