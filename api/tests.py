@@ -7,28 +7,6 @@ from helpers.prices.data import FakeData
 from .models import Coverage
 
 
-def create_fake_risk_attribution_data(obj):
-    obj.c = Client()
-    instance = Coverage.objects.create(
-        id=666,
-        country_name="united_states",
-        name="S&P 500",
-        security_type="index",
-    )
-    instance.save()
-    instance = Coverage.objects.create(
-        id=667,
-        country_name="united_kingdom",
-        name="FTSE 100",
-        security_type="index",
-    )
-    instance.save()
-
-    obj.fake_data = {}
-    obj.fake_data[666] = FakeData.get_investpy(1, 0.01, 100)
-    obj.fake_data[667] = FakeData.get_investpy(2, 0.02, 100)
-
-
 def risk_attribution_route_builder(query_string):
     all_base_routes = [
         "riskattribution",
@@ -53,7 +31,25 @@ class TestRiskAttributionRoutes(TestCase):
     """
 
     def setUp(self):
-        create_fake_risk_attribution_data(self)
+        self.c = Client()
+        instance = Coverage.objects.create(
+            id=666,
+            country_name="united_states",
+            name="S&P 500",
+            security_type="index",
+        )
+        instance.save()
+        instance = Coverage.objects.create(
+            id=667,
+            country_name="united_kingdom",
+            name="FTSE 100",
+            security_type="index",
+        )
+        instance.save()
+
+        self.fake_data = {}
+        self.fake_data[666] = FakeData.get_investpy(1, 0.01, 100)
+        self.fake_data[667] = FakeData.get_investpy(2, 0.02, 100)
 
     @patch("api.views.prices.PriceAPIRequestsMonthly")
     def test_that_risk_attribution_runs(self, mock_obj):
@@ -223,7 +219,10 @@ class TestIncomeSimulation(TestCase):
         instance.save()
 
         self.fake_data = {}
-        self.fake_data[666] = FakeData.get_investpy(1, 0.1, 100)
+        self.fake_data[666] = FakeData.get_investpy(1, 0.1, 400)
+
+        self.fake_data_insufficent_len = {}
+        self.fake_data_insufficent_len[666] = FakeData.get_investpy(1, 0.1, 100)
 
     def test_that_get_fails(self):
         resp = self.c.get("/api/incomesim")
@@ -241,6 +240,10 @@ class TestIncomeSimulation(TestCase):
                 "initial_cash": 100000,
                 "wage": 10000,
                 "wage_growth": 0.05,
+                "contribution_pct": 0.05,
+                "emergency_cash_min": 5000,
+                "sim_length": 10,
+
             }
         }
         response = self.c.post("/api/incomesim", req, content_type="application/json")
@@ -262,6 +265,9 @@ class TestIncomeSimulation(TestCase):
                 "initial_cash": -1,
                 "wage": -1,
                 "wage_growth": -1,
+                "contribution_pct": -1,
+                "emergency_cash_min": -1,
+                "sim_length": -1,
             }
         }
 
@@ -282,6 +288,9 @@ class TestIncomeSimulation(TestCase):
                 "initial_cash": 1,
                 "wage": 1,
                 "wage_growth": 0.05,
+                "contribution_pct": 0.05,
+                "emergency_cash_min": 5000,
+                "sim_length": 10,
             }
         }
         req1 = {
@@ -291,6 +300,9 @@ class TestIncomeSimulation(TestCase):
                 "initial_cash": 1,
                 "wage": 1,
                 "wage_growth": 0.05,
+                "contribution_pct": 0.05,
+                "emergency_cash_min": 5000,
+                "sim_length": 10,
             }
         }
         req2 = {
@@ -300,6 +312,9 @@ class TestIncomeSimulation(TestCase):
                 "initial_cash": 1,
                 "wage": 1,
                 "wage_growth": 0.05,
+                "contribution_pct": 0.05,
+                "emergency_cash_min": 5000,
+                "sim_length": 10,
             }
         }
         req3 = {
@@ -309,6 +324,9 @@ class TestIncomeSimulation(TestCase):
                 "initial_cash": -1,
                 "wage": 1,
                 "wage_growth": 0.05,
+                "contribution_pct": 0.05,
+                "emergency_cash_min": 5000,
+                "sim_length": 10,
             }
         }
         req4 = {
@@ -318,6 +336,9 @@ class TestIncomeSimulation(TestCase):
                 "initial_cash": 10,
                 "wage": -1,
                 "wage_growth": 0.05,
+                "contribution_pct": 0.05,
+                "emergency_cash_min": 5000,
+                "sim_length": 10,
             }
         }
         req5 = {
@@ -327,7 +348,46 @@ class TestIncomeSimulation(TestCase):
                 "initial_cash": 10,
                 "wage": 10,
                 "wage_growth": -1,
-            }
+                "contribution_pct": 0.05,
+                "emergency_cash_min": 5000,
+                "sim_length": 10,
+           }
+        }
+        req6 = {
+            "data": {
+                "assets": [666],
+                "weights": [1],
+                "initial_cash": 10,
+                "wage": 10,
+                "wage_growth": 0.05,
+                "contribution_pct": -1,
+                "emergency_cash_min": 5000,
+                "sim_length": 10,
+           }
+        }
+        req7 = {
+            "data": {
+                "assets": [666],
+                "weights": [1],
+                "initial_cash": 10,
+                "wage": 10,
+                "wage_growth": 0.05,
+                "contribution_pct": 0.05,
+                "emergency_cash_min": -1,
+                "sim_length": 10,
+           }
+        }
+        req8 = {
+            "data": {
+                "assets": [666],
+                "weights": [1],
+                "initial_cash": 10,
+                "wage": 10,
+                "wage_growth": 0.05,
+                "contribution_pct": 0.05,
+                "emergency_cash_min": 5,
+                "sim_length": -1,
+           }
         }
 
         response = self.c.post("/api/incomesim", req, content_type="application/json")
@@ -336,6 +396,9 @@ class TestIncomeSimulation(TestCase):
         response3 = self.c.post("/api/incomesim", req3, content_type="application/json")
         response4 = self.c.post("/api/incomesim", req4, content_type="application/json")
         response5 = self.c.post("/api/incomesim", req5, content_type="application/json")
+        response6 = self.c.post("/api/incomesim", req6, content_type="application/json")
+        response7 = self.c.post("/api/incomesim", req7, content_type="application/json")
+        response8 = self.c.post("/api/incomesim", req8, content_type="application/json")
 
         self.assertTrue(response.status_code == 400)
         self.assertTrue(response1.status_code == 400)
@@ -343,6 +406,10 @@ class TestIncomeSimulation(TestCase):
         self.assertTrue(response3.status_code == 400)
         self.assertTrue(response4.status_code == 400)
         self.assertTrue(response5.status_code == 400)
+        self.assertTrue(response6.status_code == 400)
+        self.assertTrue(response7.status_code == 400)
+        self.assertTrue(response8.status_code == 400)
+
 
     @patch("api.views.prices.PriceAPIRequests")
     def test_that_simulation_throws_error_with_failed_data_fetch(self, mock_obj):
@@ -356,11 +423,38 @@ class TestIncomeSimulation(TestCase):
                 "initial_cash": 10,
                 "wage": 10,
                 "wage_growth": 0.05,
+                "contribution_pct": 0.05,
+                "emergency_cash_min": 5,
+                "sim_length": 10,
             }
         }
 
         response = self.c.post("/api/incomesim", req, content_type="application/json")
         self.assertTrue(response.status_code == 404)
+
+
+    @patch("api.views.prices.PriceAPIRequests")
+    def test_that_simulation_fails_with_insufficient_data(self, mock_obj):
+        instance = mock_obj.return_value
+        instance.get_overlapping.return_value = self.fake_data_insufficent_len
+
+        req = {
+            "data": {
+                "assets": ["666"],
+                "weights": [1.0],
+                "initial_cash": 100000,
+                "wage": 10000,
+                "wage_growth": 0.05,
+                "contribution_pct": 0.05,
+                "emergency_cash_min": 5000,
+                "sim_length": 10,
+
+            }
+        }
+        response = self.c.post("/api/incomesim", req, content_type="application/json")
+        self.assertTrue(response.status_code == 404)
+
+
 
 
 class TestBacktestPortfolio(TestCase):
