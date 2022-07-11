@@ -81,8 +81,8 @@ pub fn max_dd_threshold_position(
 #[cfg(test)]
 mod tests {
 
-    use pyo3::types::{PyList, PyFloat};
     use pyo3::prelude::*;
+    use pyo3::types::{PyFloat, PyList};
 
     use super::max_dd_threshold_position;
 

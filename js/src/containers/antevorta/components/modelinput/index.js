@@ -39,6 +39,18 @@ export const ModelInput = (props) => {
     wageGrowth,
     setWageGrowth,
   ] = useState(1);
+  const [
+    emergencyCashMin,
+    setEmergencyCashMin,
+  ] = useState(5000);
+  const [
+    contributionPct,
+    setContributionPct,
+  ] = useState(5);
+  const [
+    simLength,
+    setSimLength,
+  ] = useState(10);
 
   const {
     runSim,
@@ -57,7 +69,7 @@ export const ModelInput = (props) => {
   const runSimWrapper = () => {
     const loader = toggleLoader();
     const simInput = simInputBuilder(
-        portfolioState, initialCash, wage, wageGrowth);
+        portfolioState, initialCash, wage, wageGrowth, contributionPct, emergencyCashMin, simLength);
     runSim(simInput, loader);
   };
 
@@ -107,6 +119,39 @@ export const ModelInput = (props) => {
           max="40"
           value={ wageGrowth }
           onChange={ (ev) => clickWrapper(ev, setWageGrowth) } />
+        <FormLabel
+          htmlFor="antevorta-contributionpct-input">
+          Contribution Percentage (%)
+        </FormLabel>
+        <FormInput
+          id="antevorta-contributionpct-input"
+          type="number"
+          min="1"
+          max="100"
+          value={ contributionPct }
+          onChange={ (ev) => clickWrapper(ev, setContributionPct) } />
+        <FormLabel
+          htmlFor="antevorta-contributionpct-input">
+          Emergency Cash Minimum
+        </FormLabel>
+        <FormInput
+          id="antevorta-emergencycashmin-input"
+          type="number"
+          min="1000"
+          step="1000"
+          value={emergencyCashMin}
+          onChange={ (ev) => clickWrapper(ev, setEmergencyCashMin) } />
+        <FormLabel
+          htmlFor="antevorta-simlength-input">
+          Simulation Length (yrs)
+        </FormLabel>
+         <FormInput
+          id="antevorta-simlength-input"
+          type="number"
+          min="10"
+          max="30"
+          value={simLength}
+          onChange={ (ev) => clickWrapper(ev, setSimLength) } />
       </FormWrapper>
       <Button
         onClick={ () => runSimWrapper() }>

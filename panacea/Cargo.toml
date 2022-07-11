@@ -10,7 +10,9 @@ crate-type = ["cdylib"]
 
 [dependencies]
 alator = { "branch" = "main", git = "http://100.108.118.115:14400/calum/alator.git" }
-antevorta = { "tag" = "v0.0.3", git = "http://100.108.118.115:14400/calum/antevorta.git" }
+antevorta = { "tag" = "v0.0.4", git = "http://100.108.118.115:14400/calum/antevorta.git" }
+rand = "0.8.4"
+rand_distr="0.4.1"
 
 [dependencies.pyo3]
 version = "0.16.3"
@@ -18,7 +20,3 @@ version = "0.16.3"
 [features]
 extension-module = ["pyo3/extension-module"]
 default = ["extension-module"]
-
-[dev-dependencies]
-rand = "0.8.4"
-rand_distr="0.4.1"

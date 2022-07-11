@@ -22,6 +22,7 @@ from helpers.analysis.riskattribution import (
 from helpers.antevorta import (
     AntevortaClientInput,
     AntevortaUnusableInputException,
+    AntevortaInsufficientDataException,
     DefaultSimulationWithPriceAPI,
 )
 from helpers.prices.data import DataSource
@@ -59,6 +60,8 @@ def antevorta_simulation(
         return JsonResponse({"data": dict(inc.results)}, status=200)
     except AntevortaUnusableInputException:
         return ErrorResponse.create(404, "Backtest could not run with inputs")
+    except AntevortaInsufficientDataException as e:
+        return ErrorResponse.create(404, e.message)
     except ConnectionError:
         return ErrorResponse.create(503, "Couldn't complete simulation")
 

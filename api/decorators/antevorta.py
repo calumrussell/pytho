@@ -44,6 +44,18 @@ def antevorta_input():
                 return ErrorResponse.create(
                     400, "Client passed no data to run simulation on"
                 )
+            if "contribution_pct" not in body_data:
+                return ErrorResponse.create(
+                    400, "Client passed no data to run simulation on"
+                )
+            if "emergency_cash_min" not in body_data:
+                return ErrorResponse.create(
+                    400, "Client passed no data to run simulation on"
+                )
+            if "sim_length" not in body_data:
+                return ErrorResponse.create(
+                    400, "Client passed no data to run simulation on"
+                )
 
             assets = body_data.get("assets")
             weights = body_data.get("weights")
@@ -57,7 +69,18 @@ def antevorta_input():
             initial_cash = body_data.get("initial_cash")
             wage = body_data.get("wage")
             wage_growth = body_data.get("wage_growth")
-            if initial_cash < 0 or wage < 0 or wage_growth < 0:
+            contribution_pct = body_data.get("contribution_pct")
+            emergency_cash_min = body_data.get("emergency_cash_min")
+            sim_length = body_data.get("sim_length")
+
+            if (
+                initial_cash < 0
+                or wage < 0
+                or wage_growth < 0
+                or contribution_pct < 0
+                or emergency_cash_min < 0
+                or sim_length < 0
+            ):
                 return ErrorResponse.create(400, "Input data is invalid")
 
             antevorta = AntevortaClientInput(
@@ -66,6 +89,9 @@ def antevorta_input():
                 initial_cash=initial_cash,
                 wage=wage,
                 wage_growth=wage_growth,
+                contribution_pct=contribution_pct,
+                emergency_cash_min=emergency_cash_min,
+                sim_length=sim_length,
             )
             return func(request, antevorta=antevorta, *args, **kwargs)
 

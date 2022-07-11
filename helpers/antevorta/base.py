@@ -1,6 +1,18 @@
 from typing import TypedDict, List
 
 
+class AntevortaInsufficientDataException(Exception):
+    """Throws when simulation has good inputs but there isn't enough
+    data for the specified asset to create a simulation resampling from
+    the data for that asset.
+
+    Currently 365 days are required.
+    """
+
+    def __init__(self) -> None:
+        self.message = "Asset has insufficient data to create an accurate simulation"
+
+
 class AntevortaInvalidInputException(Exception):
     """Throws when BackTest is missing key inputs needed
     to complete
@@ -25,6 +37,9 @@ class AntevortaClientInput(TypedDict):
     initial_cash: float
     wage: float
     wage_growth: float
+    contribution_pct: float
+    emergency_cash_min: float
+    sim_length: int
 
 
 class AntevortaResults(TypedDict):

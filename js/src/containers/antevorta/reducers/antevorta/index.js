@@ -52,11 +52,14 @@ export const useAntevorta = () => {
     type: 'SIM_CLR',
   });
 
-  const simInputBuilder = (portfolio, initialCash, wage, wageGrowth) => ({
+  const simInputBuilder = (portfolio, initialCash, wage, wageGrowth, contributionPct, emergencyCashMin, simLength) => ({
     'data': {
       'initial_cash': Number(initialCash),
       'wage': Number(wage),
       'wage_growth': wageGrowth / 100.0,
+      'contribution_pct': contributionPct / 100.0,
+      'emergency_cash_min': Number(emergencyCashMin),
+      'sim_length': Number(simLength),
       ...portfolio.portfolio.toPost(),
     },
   });

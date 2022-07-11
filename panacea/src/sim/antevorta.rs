@@ -1,13 +1,25 @@
+use crate::stat::build_sample_raw_daily;
 use alator::broker::{BrokerCost, Dividend, Quote};
 use alator::data::{DataSource, DateTime, PortfolioAllocation};
 use alator::sim::broker::SimulatedBroker;
 use alator::sim::portfolio::SimPortfolio;
-use antevorta::country::uk::{UKIncome, UKSimulationBuilder, UKSimulationResult, NIC};
+use antevorta::country::uk::{
+    UKIncome, UKSimulationBuilder, UKSimulationBuilderConfig, UKSimulationResult, NIC,
+};
 use antevorta::schedule::Schedule;
 use antevorta::sim::Simulation;
 use antevorta::strat::StaticInvestmentStrategy;
+use pyo3::create_exception;
+use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use std::collections::HashMap;
+
+create_exception!(
+    panacea,
+    InsufficientDataError,
+    PyException,
+    "Insufficient data to resample."
+);
 
 #[pyclass]
 #[derive(Clone, Debug)]
@@ -18,8 +30,10 @@ pub struct AntevortaBasicInput {
     pub close: HashMap<String, Vec<f64>>,
     pub initial_cash: f64,
     pub wage: f64,
-    //TODO: especially bad name, needs to change
     pub wage_growth: f64,
+    pub contribution_pct: f64,
+    pub emergency_cash_min: f64,
+    pub sim_length: i64,
 }
 
 #[pymethods]
@@ -33,6 +47,9 @@ impl AntevortaBasicInput {
         initial_cash: f64,
         wage: f64,
         wage_growth: f64,
+        contribution_pct: f64,
+        emergency_cash_min: f64,
+        sim_length: i64,
     ) -> Self {
         AntevortaBasicInput {
             assets,
@@ -42,6 +59,9 @@ impl AntevortaBasicInput {
             initial_cash,
             wage,
             wage_growth,
+            contribution_pct,
+            emergency_cash_min,
+            sim_length,
         }
     }
 }
@@ -60,23 +80,33 @@ fn convert_sim_results(res: UKSimulationResult) -> PySimResults {
 #[pyfunction]
 pub fn antevorta_basic(input: &AntevortaBasicInput) -> PyResult<PySimResults> {
     let start_date = input.dates.first().unwrap().clone();
-    let sim_len = input.dates.len();
 
     let mut raw_data: HashMap<DateTime, Vec<Quote>> = HashMap::new();
-    for pos in 0..sim_len {
-        let curr_date: DateTime = input.dates[pos].into();
-        let mut quotes: Vec<Quote> = Vec::new();
-        for asset in &input.assets {
-            let close = input.close.get(asset).unwrap();
-            let q = Quote {
-                date: curr_date,
-                bid: close[pos].into(),
-                ask: close[pos].into(),
-                symbol: asset.clone(),
-            };
-            quotes.push(q);
+    if let Some(resampled_close) = build_sample_raw_daily(input.sim_length, input.close.clone()) {
+        let sim_length_days = input.sim_length * 365;
+        let mut iter_date = input.dates.first().unwrap().clone();
+        //The simulator builds its own dates to use an input
+        //This will iterate over the prices within the resampled_close, therefore the vectors have to
+        //be equal to sim_length_days
+        for pos in 0..sim_length_days {
+            let mut quotes: Vec<Quote> = Vec::new();
+            for asset in &input.assets {
+                let asset_closes = resampled_close.get(asset).unwrap();
+                let pos_close = asset_closes[pos as usize];
+                let q = Quote {
+                    date: iter_date.into(),
+                    bid: pos_close.into(),
+                    ask: pos_close.into(),
+                    symbol: asset.clone(),
+                };
+                quotes.push(q);
+            }
+            raw_data.insert(iter_date.into(), quotes);
+            //Add one day in seconds
+            iter_date += 84600;
         }
-        raw_data.insert(curr_date, quotes);
+    } else {
+        return Err(InsufficientDataError::new_err("Insufficient data"));
     }
     let raw_dividends: HashMap<DateTime, Vec<Dividend>> = HashMap::new();
     let source = DataSource::from_hashmap(raw_data, raw_dividends);
@@ -89,21 +119,30 @@ pub fn antevorta_basic(input: &AntevortaBasicInput) -> PyResult<PySimResults> {
         )
     }
 
-    let brokercosts = vec![BrokerCost::PctOfValue(0.005)];
+    let brokercosts = vec![BrokerCost::Flat(0.01.into())];
     let simbrkr = SimulatedBroker::new(source, brokercosts);
     let port = SimPortfolio::new(simbrkr);
     let ia = StaticInvestmentStrategy::new(Schedule::EveryFriday, weights);
 
     let growth: f64 = (1.0 + input.wage_growth).powf(1.0 / 12.0) - 1.0;
-    let mut state_builder = UKSimulationBuilder::new(input.initial_cash.into(), 0.0.into(), NIC::A, ia, port);
+    let config = UKSimulationBuilderConfig {
+        start_cash: input.initial_cash.into(),
+        lifetime_pension_contributions: 0.0.into(),
+        contribution_pct: input.contribution_pct,
+        emergency_cash_min: input.emergency_cash_min.into(),
+        nic: NIC::A,
+        portfolio: port,
+        strat: ia,
+    };
+    let mut state_builder = UKSimulationBuilder::new(config);
     let employment = UKIncome::Employment(input.wage.into(), Schedule::EveryMonth(25))
-        .with_fixedrate_growth(&start_date.into(), &(sim_len as i64), &growth);
+        .with_fixedrate_growth(&start_date.into(), &(input.sim_length * 365), &growth);
     state_builder.add_incomes(employment);
     let mut state = state_builder.build();
 
     let mut sim = Simulation {
         start_date: start_date.into(),
-        length: sim_len as i64,
+        length: input.sim_length * 365,
     };
     let result = sim.run(&mut state);
     Ok(convert_sim_results(result.get_perf()))
@@ -116,39 +155,46 @@ mod tests {
 
     use pyo3::prelude::*;
     use rand::distributions::Uniform;
-    use rand::{thread_rng, Rng};
-    use rand_distr::{Distribution, Normal};
+    use rand::thread_rng;
+    use rand_distr::Distribution;
 
     use super::{antevorta_basic, AntevortaBasicInput};
 
-    #[test]
-    fn run_income() {
-        //Weights is {symbol: weight}
-        //Data is {asset_id[i64]: {Open/Close[str]: {date[i64], price[f64]}}}
-        let price_dist = Uniform::new(1.0, 100.0);
-        let vol_dist = Uniform::new(0.1, 0.2);
+    fn setup() -> (
+        HashMap<String, Vec<f64>>,
+        Vec<i64>,
+        Vec<String>,
+        HashMap<String, f64>,
+    ) {
+        let price_dist = Uniform::new(80.0, 120.0);
         let mut rng = thread_rng();
-        let price = rng.sample(price_dist);
-        let vol = rng.sample(vol_dist);
-        let ret_dist = Normal::new(0.0, vol).unwrap();
 
         let assets = vec![0.to_string(), 1.to_string()];
-        let dates: Vec<i64> = (0..100).collect();
+        let dates: Vec<i64> = (0..400).collect();
         let mut close: HashMap<String, Vec<f64>> = HashMap::new();
         for asset in &assets {
             let mut close_data: Vec<f64> = Vec::new();
             for _date in &dates {
-                let period_ret = ret_dist.sample(&mut rng);
-                let new_price = price * (1.0 + period_ret);
-                close_data.push(new_price);
+                close_data.push(price_dist.sample(&mut rng));
             }
             close.insert(asset.clone(), close_data);
         }
-
         let mut weights: HashMap<String, f64> = HashMap::new();
         weights.insert(String::from("0"), 0.5);
         weights.insert(String::from("1"), 0.5);
 
+        (close, dates, assets, weights)
+    }
+
+    #[test]
+    fn run_income_simulation() {
+        //Weights is {symbol: weight}
+        //Data is {asset_id[i64]: {Open/Close[str]: {date[i64], price[f64]}}}
+        let res = setup();
+        let close = res.0;
+        let dates = res.1;
+        let assets = res.2;
+        let weights = res.3;
         pyo3::prepare_freethreaded_python();
         Python::with_gil(|py| -> PyResult<()> {
             let obj = PyCell::new(
@@ -161,12 +207,71 @@ mod tests {
                     initial_cash: 100_000.0,
                     wage: 4_000.0,
                     wage_growth: 0.02,
+                    contribution_pct: 0.10,
+                    emergency_cash_min: 5_000.0,
+                    sim_length: 20,
                 },
             )
             .unwrap()
             .borrow();
             let res = antevorta_basic(&obj);
             println!("{:?}", res.unwrap());
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn test_that_sim_length_changes_results() {
+        //Weights is {symbol: weight}
+        //Data is {asset_id[i64]: {Open/Close[str]: {date[i64], price[f64]}}}
+        let res = setup();
+        let close = res.0;
+        let dates = res.1;
+        let assets = res.2;
+        let weights = res.3;
+
+        pyo3::prepare_freethreaded_python();
+        Python::with_gil(|py| -> PyResult<()> {
+            let obj = PyCell::new(
+                py,
+                AntevortaBasicInput {
+                    dates: dates.clone(),
+                    assets: assets.clone(),
+                    close: close.clone(),
+                    weights: weights.clone(),
+                    initial_cash: 100_000.0,
+                    wage: 4_000.0,
+                    wage_growth: 0.02,
+                    contribution_pct: 0.10,
+                    emergency_cash_min: 5_000.0,
+                    sim_length: 20,
+                },
+            )
+            .unwrap()
+            .borrow();
+            let res = antevorta_basic(&obj)?;
+
+            let obj1 = PyCell::new(
+                py,
+                AntevortaBasicInput {
+                    dates,
+                    assets,
+                    close,
+                    weights,
+                    initial_cash: 100_000.0,
+                    wage: 4_000.0,
+                    wage_growth: 0.02,
+                    contribution_pct: 0.10,
+                    emergency_cash_min: 5_000.0,
+                    sim_length: 30,
+                },
+            )
+            .unwrap()
+            .borrow();
+            let res1 = antevorta_basic(&obj1)?;
+
+            //Position one should be a non-cash value
+            assert!(res.1 != res1.1);
             Ok(())
         });
     }
